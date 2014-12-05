@@ -1,0 +1,5 @@
+*.pyc
+woods_hole_obs_data/output/*
+woods_hole_obs_data/temp/*
+woods_hole_obs_data/download/*
+*.log
