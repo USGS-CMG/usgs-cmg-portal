@@ -1,0 +1,4 @@
+requests
+numpy
+netCDF4
+pyproj
