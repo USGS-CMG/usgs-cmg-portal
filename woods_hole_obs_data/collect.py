@@ -58,8 +58,6 @@ variable_name_overrides = {
     'w_2'       : dict(epic_code=1204),
     'bearing'   : dict(epic_code=1411),
     'rotor'     : dict(epic_code=4006),
-    'wh_4061'   : dict(epic_code=4061),
-    'wp_4060'   : dict(epic_code=4060),
     'DO'        : dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_oxygen_in_sea_water',
                                                       convert=lambda x: x/1000.,
                                                       units='kg/m^3')),
@@ -431,6 +429,11 @@ def normalize_units(netcdf_file):
                 # Convert kelvin to Celsius
                 nc_var[:] = nc_var[:] - 273.15
                 nc_var.units = "degree_Celsius"
+            elif hasattr(nc_var, 'standard_name') and nc_var.standard_name == 'sea_surface_wave_from_direction':
+                # Convert "From" to "To" direction
+                nc_var[:] = (nc_var[:] + 180) % 360
+                nc_var.standard_name = 'sea_surface_wave_to_direction'
+                nc_var.long_name = "Wave Direction (to TN)"
     except BaseException:
         logger.exception("Error")
         raise
@@ -595,7 +598,8 @@ def main(output, do_download):
                     if not os.path.isdir(output_directory):
                         os.makedirs(output_directory)
 
-                    file_global_attributes = copy(global_attributes)
+                    file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
+                    file_global_attributes.update(global_attributes)
                     file_global_attributes['id']               = station_id
                     file_global_attributes['title']            = station_name
                     if project_name in project_metadata:
