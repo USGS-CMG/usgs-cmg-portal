@@ -18,22 +18,23 @@ import numpy as np
 from thredds_crawler.crawl import Crawl
 from pytools.netcdf.sensors.create import create_timeseries_file
 
+import coloredlogs
+
 # Log to stdout
 logger = logging.getLogger()
+coloredlogs.install(level=logging.INFO)
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler(sys.stdout)
 fh = logging.FileHandler('usgs_cmg.log')
-ch.setLevel(logging.INFO)
 fh.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - [%(levelname)s] %(message)s')
-ch.setFormatter(formatter)
 fh.setFormatter(formatter)
-logger.addHandler(ch)
 logger.addHandler(fh)
 
 # Don't show the HTTP connection spam
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
 crawler_log = logging.getLogger("thredds_crawler").setLevel(logging.INFO)
+
+IGNORABLE_CODES = epic.location_codes + epic.time_codes + epic.generic_codes + epic.voltage_codes
 
 variable_name_overrides = {
     'w_1204min' : dict(epic_code=1204, overrides=dict(cell_methods='time: minimum')),
@@ -42,13 +43,23 @@ variable_name_overrides = {
     'w_1204max' : dict(epic_code=1204, overrides=dict(cell_methods='time: maximum')),
     'u_1205max' : dict(epic_code=1205, overrides=dict(cell_methods='time: maximum')),
     'v_1206max' : dict(epic_code=1206, overrides=dict(cell_methods='time: maximum')),
-    'WG_402'    : dict(epic_code=401),
+    'WG_402'    : dict(epic_code=402),
     'Turb'      : dict(epic_code=980),
     'Press'     : dict(epic_code=1301),
     'vspd_1'    : dict(epic_code=300),
     'vdir_1'    : dict(epic_code=310),
+    'vspd_2'    : dict(epic_code=300),
+    'vdir_2'    : dict(epic_code=310),
+    'u_1'       : dict(epic_code=1205),
+    'v_1'       : dict(epic_code=1206),
+    'w_1'       : dict(epic_code=1204),
+    'u_2'       : dict(epic_code=1205),
+    'v_2'       : dict(epic_code=1206),
+    'w_2'       : dict(epic_code=1204),
     'bearing'   : dict(epic_code=1411),
     'rotor'     : dict(epic_code=4006),
+    'wh_4061'   : dict(epic_code=4061),
+    'wp_4060'   : dict(epic_code=4060),
     'DO'        : dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_oxygen_in_sea_water',
                                                       convert=lambda x: x/1000.,
                                                       units='kg/m^3')),
@@ -60,11 +71,14 @@ variable_name_overrides = {
                                                       original_units='w/milli-angstrom^2',
                                                       units='w/m^2',
                                                       convert=lambda x: x/1e13)),
+    'BPR_1301'  : dict(epic_code=1301),
+    'CTDCON_4218': dict(epic_code=4218)
 }
 
 long_name_overrides = {
-    'salinity 2 q':                         dict(epic_code=40),
     'salinity 1':                           dict(epic_code=40),
+    'salinity 2':                           dict(epic_code=40),
+    'salinity 2 q':                         dict(epic_code=40),
     'ctd salinity, pss-78':                 dict(epic_code=4214),
     'salinity':                             dict(epic_code=40),
     'salinity (ppt)':                       dict(epic_code=40),
@@ -94,11 +108,24 @@ long_name_overrides = {
     'sea surface temperature (degrees C)':  dict(epic_code=36),
     'conductivity':                         dict(epic_code=50),
     'attenuation':                          dict(epic_code=55),
+    'sigma theta':                          dict(epic_code=70),
+    'psdev':                                dict(epic_code=850),
+    'pressure':                             dict(epic_code=9),
+    'sp cond':                              dict(epic_code=48),
     'dissolved oxygen saturation (mg/l)':   dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_oxygen_in_sea_water',
                                                                                 original_units='mg/l',
                                                                                 units='kg/m^3',
                                                                                 convert=lambda x: x/1000.)),
     'raw aanderaa dissolved oxygen concentration (um/kg)': dict(epic_code=65),
+    'standard deviation of inst pitch':     dict(epic_code=1219),
+    'standard deviation of inst roll':      dict(epic_code=1220),
+    'cond':                                 dict(epic_code=51),
+    'cond 1':                               dict(epic_code=51),
+    'cond 2':                               dict(epic_code=51),
+    'rotor count':                          dict(epic_code=4006),
+    'rotor speed':                          dict(epic_code=4005),
+    'compass':                              dict(epic_code=1401),
+    'vane':                                 dict(epic_code=1402),
 }
 
 global_attributes = {
@@ -320,17 +347,18 @@ def normalize_epic_codes(netcdf_file):
                         setattr(nc_var, k, d)
 
             if hasattr(nc_var, 'long_name'):
-                lookup_long_name = nc_var.long_name.lower().strip()
-                if lookup_long_name in long_name_overrides:
-                    ec = long_name_overrides.get(lookup_long_name).get('epic_code', None)
-                    if ec is not None:
-                        nc_var.epic_code = ec
-                    overrides = long_name_overrides.get(lookup_long_name).get('overrides', dict())
-                    for k, d in overrides.items():
-                        if k == 'convert':
-                            nc_var[:] = d(nc_var[:])
-                        elif k != 'original_units':
-                            setattr(nc_var, k, d)
+                if not hasattr(nc_var, 'epic_code') or hasattr(nc_var, 'epic_code') and nc_var.epic_code in IGNORABLE_CODES:
+                    lookup_long_name = nc_var.long_name.lower().strip()
+                    if lookup_long_name in long_name_overrides:
+                        ec = long_name_overrides.get(lookup_long_name).get('epic_code', None)
+                        if ec is not None:
+                            nc_var.epic_code = ec
+                        overrides = long_name_overrides.get(lookup_long_name).get('overrides', dict())
+                        for k, d in overrides.items():
+                            if k == 'convert':
+                                nc_var[:] = d(nc_var[:])
+                            elif k != 'original_units':
+                                setattr(nc_var, k, d)
 
             if hasattr(nc_var, "epic_code") and nc_var.epic_code:
                 try:
@@ -349,7 +377,7 @@ def normalize_epic_codes(netcdf_file):
                         if attribs['cell_methods'] is not None:
                             nc_var.cell_methods = attribs['cell_methods']
                     else:
-                        logger.warning("Could not find CF mapping for EPIC code {!s}".format(nc_var.epic_code))
+                        logger.debug("Could not find CF mapping for EPIC code {!s}".format(nc_var.epic_code))
     except BaseException:
         logger.exception("Error.")
         raise
@@ -417,7 +445,7 @@ def normalize_time(netcdf_file):
     try:
         nc = netCDF4.Dataset(netcdf_file, 'a')
         # Signell said this works, any problems and we can all blame him!
-        time_data = netCDF4.num2date((np.int64(nc.variables['time'][:])-2400001)*3600*24*1000 + nc.variables['time2'][:], units=millisecond_units)
+        time_data = netCDF4.num2date((np.int64(nc.variables['time'][:])-2400001)*3600*24*1000 + nc.variables['time2'][:].__array__(), units=millisecond_units)
         nc.renameVariable("time", "old_time")
         nc.sync()
 
@@ -479,8 +507,9 @@ def main(output, do_download):
             project_name, _ = nc.id.split("/")
             # Now try to come up with a better one.
             if hasattr(nc, 'MOORING') and hasattr(nc, 'id'):
-                station_id = "{0}_{1}".format(project_name, nc.MOORING[0:3]).lower()
-                station_name = "{0} ({1})".format(project_name, nc.MOORING[0:3])
+                mooring_id = str(nc.MOORING).replace(':', '').strip()
+                station_id = "{0}_{1}".format(project_name, mooring_id[0:3]).lower()
+                station_name = "{0} ({1})".format(project_name, mooring_id[0:3])
             else:
                 try:
                     # Mooring ID is the first three numbers of the file
@@ -491,41 +520,49 @@ def main(output, do_download):
                     logger.error("Could not create a suitable station_id. Skipping {0}.".format(down_file))
                     continue
 
-            latitude  = nc.variables.get("lat")[0]
-            longitude = nc.variables.get("lon")[0]
+            try:
+                latitude  = nc.variables.get("lat")[0]
+                longitude = nc.variables.get("lon")[0]
+            except IndexError:
+                latitude  = nc.variables.get("lat")[:]
+                longitude = nc.variables.get("lon")[:]
             starting  = datetime.utcfromtimestamp(nc.variables.get("time")[0])
             ending    = datetime.utcfromtimestamp(nc.variables.get("time")[-1])
 
             station_urn = "urn:ioos:station:{0}:{1}".format('gov.usgs.cmgp', station_id).lower()
+
+            logger.info("FILE: {0}".format(down_file))
             logger.info("STATION: {0}".format(station_urn))
 
             data_variables  = list()
             other_variables = list()
-            coord_vars      = ['time', 'time2', 'old_time', 'depth', 'lat', 'lon']
+            coord_vars      = ['time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'lat', 'lon']
             for v in nc.variables:
                 if v in coord_vars:
-                    # Skip coordinate variables
-                    continue
+                    continue  # Skip coordinate variables`
                 nc_var = nc.variables.get(v)
+                try:
+                    var_epic_code = int(nc_var.epic_code)
+                except (AttributeError, ValueError):
+                    var_epic_code = None
                 if hasattr(nc_var, "cf_role"):
                     other_variables.append(v)
                 elif hasattr(nc_var, "standard_name") and nc_var.standard_name.lower() == "time":
-                    # Skip time variables
-                    pass
+                    pass  # Skip time variables
                 elif hasattr(nc_var, "standard_name") and nc_var.standard_name.lower() in ["latitude", "longitude"]:
-                    # Skip lat/lon variables
-                    pass
+                    pass  # Skip lat/lon variables
                 elif hasattr(nc_var, "standard_name") and nc_var.standard_name.lower() == "surface_altitude":
                     other_variables.append(v)
                 elif hasattr(nc_var, "axis"):
                     other_variables.append(v)
-                elif hasattr(nc_var, "epic_code") and nc_var.epic_code in epic.metadata_codes:
-                    other_variables.append(v)
+                elif var_epic_code and var_epic_code in epic.metadata_codes:
+                    other_variables.append(v)  # Add metadata variables to the file.  This later checks the dimensions match the data variable.
+                elif var_epic_code and var_epic_code in IGNORABLE_CODES:
+                    continue  # Skip ignorable variables
                 elif v == "bindist":
                     other_variables.append(v)
                 elif hasattr(nc_var, "standard_name") and nc_var.standard_name.lower() in ['northward_sea_water_velocity', 'eastward_sea_water_velocity']:
-                    # We created speed/direction variables, so skip these
-                    continue
+                    continue  # We created speed/direction variables, so skip these
                 elif hasattr(nc_var, "standard_name"):
                     if hasattr(nc_var, "cell_methods"):
                         data_variables.append((v, nc_var.standard_name, nc_var.cell_methods, ))
@@ -533,14 +570,17 @@ def main(output, do_download):
                         data_variables.append((v, nc_var.standard_name, None))
                 else:
                     if hasattr(nc_var, 'long_name'):
-                        logger.warning("Skipping {0}, no standard_name attribute.  'long_name' is {1}.".format(v, nc_var.long_name))
+                        if var_epic_code:
+                            logger.warning("Skipping {0}, no standard_name attribute.  'long_name' is {1}.  epic_code is {2}.".format(v, nc_var.long_name.strip(), nc_var.epic_code))
+                        else:
+                            logger.warning("Skipping {0}, no standard_name attribute.  'long_name' is {1}.".format(v, nc_var.long_name.strip()))
                     else:
                         logger.warning("Skipping {0}, no standard_name or long_name attribute.".format(v))
                     continue
 
             for dv, std, cm in data_variables:
                 try:
-                    logger.info("Exporting: {0}".format(dv))
+                    logger.debug("Exporting: {0}".format(dv))
                     #logger.info("Creating file with the following variables: {!s}".format(other_variables + [dv]))
                     file_name = "{0}_{1}_TO_{2}.nc".format(dv, starting.strftime("%Y-%m-%dT%H:%MZ"), ending.strftime("%Y-%m-%dT%H:%MZ"))
                     sensor_urn = "{0}:{1}".format(station_urn.replace("station", "sensor"), std)
@@ -565,11 +605,25 @@ def main(output, do_download):
                         file_global_attributes['project_summary']  = summary
 
                     ts = nc.variables.get("time")[:]
-                    zs = nc.variables.get("depth")[:]
 
-                    times     = np.ma.repeat(ts, zs.size)
-                    verticals = np.ma.ravel(np.ma.repeat([zs], ts.size, axis=0))
-                    values    = nc.variables.get(dv)[:]
+                    depth_variable = [ x for x in nc.variables.get(dv).dimensions if 'depth' in x ]
+                    if len(depth_variable) >= 1:
+                        depth_variable = depth_variable[0]
+                    else:
+                        depth_variable = None
+
+                    if depth_variable:
+                        zs = nc.variables.get(depth_variable)[:]
+                        times     = np.ma.repeat(ts, zs.size)
+                        verticals = np.ma.ravel(np.ma.repeat([zs], ts.size, axis=0))
+                        values    = np.squeeze(nc.variables.get(dv)[:]).flatten()
+                    else:
+                        sensor_depth = 0
+                        if hasattr(nc.variables.get(dv), 'sensor_depth'):
+                            sensor_depth = nc.variables.get(dv).sensor_depth
+                        times     = ts
+                        verticals = np.ma.repeat(sensor_depth, ts.size)
+                        values    = np.squeeze(nc.variables.get(dv)[:]).flatten()
 
                     assert values.size == verticals.size == times.size
                     create_timeseries_file(output_directory=output_directory, latitude=latitude, longitude=longitude, full_station_urn=station_urn, full_sensor_urn=sensor_urn, global_attributes=file_global_attributes, attributes=nc.variables.get(dv).__dict__, output_filename=file_name, times=times, verticals=verticals, values=values)
@@ -595,15 +649,14 @@ def main(output, do_download):
                                 logger.info("Skipping: {0}.  It has a Z axis but the core variable '{1}' does not.".format(other, dv))
                                 continue
                         """
-
-                        logger.info("Adding: {0}".format(other))
                         other_var = new_nc.createVariable(other, old_var.dtype, new_var.dimensions)
                         for k in old_var.ncattrs():
                             other_var.setncattr(k, old_var.getncattr(k))
                         try:
                             other_var[:] = nc.variables.get(other)[:]
+                            logger.debug("Adding metadata variable: {0}".format(other))
                         except BaseException:
-                            logger.info("Skipping: {0}.  It has more dimensions than the core variable '{1}'.".format(other, dv))
+                            logger.debug("Skipping: {0}.  It had more dimensions than the core variable '{1}'.".format(other, dv))
                             continue
                         new_nc.sync()
                     nc_close(new_nc)

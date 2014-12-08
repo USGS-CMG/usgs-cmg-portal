@@ -2,3 +2,4 @@ numpy
 netCDF4
 thredds_crawler
 requests
+coloredlogs

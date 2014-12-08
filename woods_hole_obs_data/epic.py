@@ -2,12 +2,17 @@
 # coding=utf-8
 
 metadata_codes = []
-metadata_codes += [1215, 1216, 1217, 1218, 1219, 1220, 1404, 1411, 1412, 1413]  # Instrument and platform pitch/roll/orientation
+metadata_codes += [1215, 1216, 1217, 1218, 1219, 1220, 1401, 1402, 1403, 1404, 1406, 1411, 1412, 1413]  # Instrument and platform pitch/roll/orientation
 metadata_codes += [9991, 9992, 9993, 9994]  # x/y/z/t axes
-metadata_codes += [1207, 1208]  # ADCP records/pings
-metadata_codes += [106]  # Battery voltage
-metadata_codes += [4000, 4001, 4002, 4003, 4004, 4005, 4006]  # Rotor speed
-metadata_codes += [106, 113, 114, 115]  # Battery voltage
+metadata_codes += [1202, 1203, 1207, 1208]  # ADCP records/pings
+metadata_codes += [4000, 4001, 4002, 4003, 4004, 4005, 4006, 4009]  # Rotor speed
+metadata_codes += [106, 107, 113, 114, 115]  # Battery voltage
+
+location_codes = [500, 501, 502, 510, 511, 512]
+time_codes     = [600, 601, 620, 621, 622, 623, 624, 625, 626, 627]
+generic_codes  = [0, 1900, 1901, 1902, 1903, 1904, 1905, 1906, 1907, 1908]
+voltage_codes  = [4010, 4012]  # Transmission Volts
+
 
 """
 EPIC codes to check:
@@ -37,7 +42,7 @@ mapping = {
      6 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #ISO:ISOTHERM DEPTH (M)       :depth:m: :,
      7 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #SL :SEA LEVEL ANOMALY (M)    :depth:m: :,
      8 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #MLD:MIXED LAYER DEPTH (M)    :depth:m: :Program MIXDEP,
-     9 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #P  :SEA LEVEL PRESSURE (MB)  :depth:mbar: :For Ferret,
+     9 : dict(standard_name='sea_water_pressure', long_name='Sea Water Pressure', units='mbar', convert=lambda x: x/100., cf_units='dbar', cell_methods=None),  #P  :SEA LEVEL PRESSURE (MB)  :depth:mbar: :For Ferret,
     10 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #DYN:DYNAMIC METERS           :dynhgt:dyn-m:f10.4:,
     11 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #DYN:DYM HT (SUBSAMPLED DATA) :dynhgt: : :,
     12 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #dDN:DYNn-DYNs                :dynhgt: :f10.5:Diff of North and South Dyn Ht.,
@@ -319,7 +324,7 @@ mapping = {
    900 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #Fvt:Fluorometer Volts        : :Volts: :,
    901 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #Fvt:Fluorometer Volts(CTD)   : :Volts: :,
    902 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #Irr:Irradiance(CTD)          : :uEin cm-2 s-1: :,
-   903 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #F  :Fluorometer (CTD)        : :mg m-3: :J.Murray 5/13/92,
+   903 : dict(standard_name='mass_concentration_of_chlorophyll_in_sea_water', long_name='Chlorophyll', units='mg/m^3', convert=lambda x: x/1000000., cf_units='kg/m^3', cell_methods=None),  #F  :Fluorometer (CTD)        : :mg m-3: :J.Murray 5/13/92,
    904 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #Tr :Transmissometry (CTD)    : :%: :J.Murray 5/13/92,
    905 : dict(standard_name='downwelling_photosynthetic_photon_flux_in_sea_water', long_name='Photosynthetic Active Radiation (PAR)', units='µE m-2 s-1', convert=lambda x: x, cf_units='mol m-2 s-1', cell_methods=None),  #PAR:Photosynthetic Active Radiation:par:uEin m-2 s-1: :J.Murray 5/13/92,
    906 : dict(standard_name='mass_concentration_of_chlorophyll_in_sea_water', long_name='Chlorophyll-a (fluorometric)', units='µg/L', convert=lambda x: x/1000000., cf_units='kg/m^3', cell_methods=None),  #Fch:Chlorophyll A            : :ugrams/l: :(fluorometric) J.Murray 5/9/94,
@@ -455,11 +460,11 @@ mapping = {
   1371 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #U48:U Amplitude (CM/S) 48hrs :u48:cm s-1: :measured w/r true N,
   1372 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #V48:V Amplitude (CM/S) 48hrs :v48:cm s-1: :measured w/r true N,
   1380 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #Res :MTR resistance          :res:ohm:f10.2:Instrument resistance,
-  1401 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #hdg :AMP compass heading     :comp:degrees:f10.2:compass heading,
-  1402 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #van :AMP vane                :vane:degrees:f10.2:vane reading,
-  1403 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #van :VANE ANGLE              :vane:degrees:f10.1:current orientation to instrument,
+  1401 : dict(standard_name='platform_orientation', long_name='Compass Heading (magnetic north)', units='degree', convert=lambda x: x, cf_units='degree', cell_methods=None),  #hdg :AMP compass heading     :comp:degrees:f10.2:compass heading,
+  1402 : dict(standard_name='platform_orientation', long_name='Vane Heading (magnetic north)', units='degree', convert=lambda x: x, cf_units='degree', cell_methods=None),  #van :AMP vane                :vane:degrees:f10.2:vane reading,
+  1403 : dict(standard_name='platform_orientation', long_name='Instrument Heading (vane)', units='degree', convert=lambda x: x, cf_units='degree', cell_methods=None),  #van :VANE ANGLE              :vane:degrees:f10.1:current orientation to instrument,
   1404 : dict(standard_name='platform_orientation', long_name='Instrument Heading (magnetic north)', units='degree', convert=lambda x: x, cf_units='degree', cell_methods=None),  #comp:COMPASS (m)             :comp:degreeM:f10.1:instrument orientation to magnetic north,
-  1406 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #comp:ORIENTATION (BASS)      :comp:degrees:f10.3:orientation of BASS pods,
+  1406 : dict(standard_name='platform_orientation', long_name='Instrument Heading (BASS pods)', units='degree', convert=lambda x: x, cf_units='degree', cell_methods=None),  #comp:ORIENTATION (BASS)      :comp:degrees:f10.3:orientation of BASS pods,
   1407 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #comp:RAW COMPASS VOLTS (MIDAS):comp:counts:i10:MIDAS raw compass voltage,
   1408 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #rcomp:ENCODED COMPASS        :comp:128.lvl.binary:i10:vacm grey code compass,
   1409 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #rvane:ENCODED VANE           :vane:128.lvl.binary:i10:vacm grey code vane,
@@ -757,8 +762,8 @@ mapping = {
   4055 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #WVAR:UP VELOCITY VARIANCE     :wvar:cm2/s2:f10.2:variance of up component, burst BASS data,
   4056 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #peru:ZERO CROSSING PERIOD, U  :period_u:s:f10.2:zero crossing period of east component, burst BASS data,
   4057 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #perv:ZERO CROSSING PERIOD, V  :period_v:s:f10.2:zero crossing period of north component, burst BASS data,
-  4060 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #wp  :average wave period       :wave_period:s:f10.2:,
-  4061 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #wh  :significant wave height   :wave_height:m:f10.2:,
+  4060 : dict(standard_name='sea_surface_wave_mean_period', long_name='Average Wave Period', units='s', convert=lambda x: x, cf_units='s', cell_methods=None),  #wp  :average wave period       :wave_period:s:f10.2:,  LOOK: This is not really a CF name.
+  4061 : dict(standard_name='sea_surface_wave_significant_height', long_name='Significant Wave Height', units='m', convert=lambda x: x, cf_units='m', cell_methods=None),  #wh  :significant wave height   :wave_height:m:f10.2:,
   4062 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #wd  :mean wave direction :wave_dir:degrees:f8.2:direction dominant waves are coming from, measured clockwise from true north,
   4063 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #dwp :dominant wave period     :wave_period:s:f10.2:,
   4064 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #mwh :Maximum Wave Height      :wave_height:m:f10.2:,
@@ -797,7 +802,7 @@ mapping = {
   4215 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #CTDSAL_FLAG:CTD Salinity Flag  :flag: : :,
   4216 : dict(standard_name='sea_water_practical_salinity', long_name='Salinity', units='1e-3', convert=lambda x: x, cf_units='1e-3', cell_methods=None),  #SALNTY :Bottle Salinity, PSS-78:sal:PSU:f9.4:,
   4217 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #SALNTY_FLAG:Bottle Salinity Flag:flag: : :,
-  4218 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #CTDCON:CTD Conductivity        :con:S/m:f10.3:,
+  4218 : dict(standard_name='sea_water_electrical_conductivity', long_name='Conductivity (CTD)', units='S/m', convert=lambda x: x, cf_units='S/m', cell_methods=None),  #CTDCON:CTD Conductivity        :con:S/m:f10.3:,
   4220 : dict(standard_name='volume_fraction_of_oxygen_in_sea_water', long_name='Dissolved Oxygen (saturation)', units='percent', convert=lambda x: x, cf_units='percent', cell_methods=None),  #CTDOST:CTD OXYGEN, %SAT        :ox:%: :,
   4221 : dict(standard_name='mole_concentration_of_dissolved_molecular_oxygen_in_sea_water', long_name='Dissolved Oxygen (mole contentration)', units='µmol/kg', convert=lambda x: x, cf_units='µmol/kg', cell_methods=None),  #CTDOXY:CTD Oxygen:ox:umol/kg:f9.1:,  LOOK: Can't convert umol/kg to mol-m-3, so we are leaving the original units
   4222 : dict(standard_name=None, long_name=None, units=None, convert=lambda x: x, cf_units=None, cell_methods=None),  #CTDOXY_FLAG:CTD Oxygen Flag    :flag: : :,
