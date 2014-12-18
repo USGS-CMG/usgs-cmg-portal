@@ -2,12 +2,11 @@
 # coding=utf-8
 
 import os
-import sys
+import csv
 import shutil
 import logging
 import requests
 import argparse
-from copy import copy
 from glob import glob
 from datetime import datetime
 
@@ -145,58 +144,6 @@ global_attributes = {
     'contributor_role':         'principalInvestigator',
 }
 
-project_metadata = {
-    'ARGO_MERCHANT':  'B. Butman:Argo Merchant Experiment:A moored array deployed after the ARGO MERCHANT ran aground onNantucket Shoals designed to help understand the fate of the spilled oil.',
-    'BARNEGAT':       'N. Ganju:Light attenuation and sediment resuspension in Barnegat Bay New Jersey: Light attenuation is a critical parameter governing the ecological function of shallow estuaries.  Near-bottom and mid-water observations of currents, pressure, chlorophyll, and fDOM were collected at three pairs of sites sequentially at different locations in the estuary to characterize the conditions.',
-    'BUZZ_BAY':       'B. Butman:Currents and Sediment Transport in Buzzards Bay:Investigation of the near-bottom circulation in Buzzards Bay and consequent transport of fine-grained sediments that may be contaminated with PCBs from inner New Bedford Harbor.',
-    'BW2011':         'N. Ganju: Blackwater 2011: Oceanographic and Water-Quality Measurements made at several sites in 2 watersheds in Blackwater National Wildlife Refuge.',
-    'CAMP':           'B. Butman:California Area Monitoring Program (CAMP):A four-year multi-disciplinary field and laboratory study to investigate the sediment transport regime in the vicinity of production drilling rigs in the Santa Barbara Basin',
-    'CAPE_COD_BAY':   'B. Butman:Currents and Sediment Transport in Cape Cod Bay:A pilot study to determine the effect of winter storms on sediment movement at two potential dredge spoil disposal areas.',
-    'CC_MISC':        'B. Butman:Transport studies - Nauset Inlet:Part of a collaborative study of sediment movement in Nauset Inlet.',
-    'CHANDELEUR':     'C. Sherwood:Chandeleur Islands Oceanographic Measurements:A program to measure waves water levels and currents near the Chandeleur Islands Louisiana and adjacent berm construction site.',
-    'DEEP_REEF':      'J. Lacey:Gulf of Mexico - Pinnacles:Pressure data from the Gulf of Mexico',
-    'DIAMONDSHOALS':  'J. Warner:Cape Hatteras- Diamond Shoals:This experiment was designed to investigate the ocean circulation and sediment transport dynamics at Diamond Shoals NC.',
-    'DWDS_106':       'B. Butman:Sediment Transport at Deep Water Dump Site 106:Near-bottom current measurements to understand the fate and transport of sludge from the New York Metropolitan region discharged at the sea surface.',
-    'ECOHAB_I':       'R. Signell:Ecology of Harmful Algal Blooms (ECOHAB-I):A field program to study the transport and fate of toxic dinoflagellate blooms in the western Gulf of Maine.',
-    'ECOHAB_II':      'R. Signell:Ecology of Harmful Algal Blooms (ECOHAB-II):A field program to continue investigating the transport and fate of toxic dinoflagellate blooms in the western Gulf of Maine.',
-    'EUROSTRATAFORM': 'C. Sherwood:EuroSTRATAFORM:The EuroSTRATAFORM Po and Apennine Sediment Transport and Accumulation (PASTA) experiment was an international study of sediment-transport processes and formation of geological strata in the Adriatic Sea.',
-    'FARALLONES':     'M. Noble:Farallons:Program to measure the currents and circulation on the continental slope off San Francisco CA and thus infer the transport of dredged materialat the newly-established deep-water disposal site.',
-    'FI12':           'J. Warner:Fire Island NY - Offshore: Oceanographic and meteorological observations were made at 7 sites on and around the sand ridges offshore of Fire Island NY in winter 2012 to study coastal processes.',
-    'GB_SED':         'B. Butman:Georges Bank Current and Sediment Transport Studies:A series of studies to assess environmental hazards to petroleum development in the Georges Bank and New England Shelf region',
-    'GLOBEC_GB':      'R. Schlitz:GLOBEC Georges Bank Program:A moored array program to investigate the circulation and mixing of plankton on Georges Bank.',
-    'GLOBEC_GSC':     'R. Schlitz:GLOBEC Great South Channel Circulation Experiment:A moored array program to investigate the recirculation of water and plankton around Georges Bank.',
-    'GULF_MAINE':     'B. Butman:Deep Circulation in the Gulf of Maine:A two-year field study to investigate the deep flow between the major basins in the Gulf of Maine and the effects on the distribution of suspended sediments.',
-    'HUDSON_SVALLEY': 'B. Butman:Circulation and Sediment Transport in the Hudson Shelf Valley:Field experiments have been carried out to understand the transport of sediments and associated contaminants in the Hudson Shelf Valley offshore of New York.',
-    'HURRIRENE_BB':   'B. Butman: Observations in Buzzards Bay during and after a Hurricane: Oceanographic data collected in Buzzards Bay MA during Hurricane Irene August 2011.',
-    'KARIN_RIDGE':    'M. Noble:Karin Ridge Experiment:Current measurements collected at 2 sites in Karin Ridge Seamount.',
-    'LYDONIA_C':      'B. Butman:Lydonia Canyon Dynamics Experiment:A major field experiment to determine the importance of submarine canyons in sediment transport along and across the continental margin.',
-    'MAB_SED':        'B. Butman:Sediment Transport Observations in the Middle Atlantic Bight:A series of studies to assess environmental hazards to petroleum development in the Middle Atlantic Bight.',
-    'MAMALA_BAY':     'D. Cacchione:Mamala bay Experiment:Current measurements collected at 350-450 meters in Mamala Bay near Waikiki Beach.',
-    'MBAY_CIRC':      'R. Signell: Massachusetts Bay Circulation Experiment:Current measurements collected at 6 sites in Massachusetts Bay throughout the year to map the tidal wind and density driven currents.',
-    'MBAY_IWAVE':     'B. Butman:Massachusetts Bay Internal Wave Experiment:A 1-month 4-element moored array experiment to measure the currents associated with large-amplitude internal waves generated by tidal flow across Stellwagen Bank.',
-    'MBAY_LT':        'B. Butman:Long-term observations in Massachusetts Bay; Site A-Boston Harbor:Measurements of currents and other oceanographic properties were made to assess the impact of sewage discharge from the proposed outfall site.',
-    'MBAY_LTB':       'B. Butman:Long-term observations in Massachusetts Bay; Site B-Scituate:Measurements of currents and other oceanographic properties were made to assess the impact of sewage discharge from the proposed outfall site.',
-    'MBAY_STELL':     'R. Signell:Monitoring on Stellwagen Bank:A year-long series of current measurements on the eastern flank of Stellwagen Bank to document the currents at the mouth of Massachusetts Bay driven by the Maine Coastal current.',
-    'MBAY_WEST':      'B. Butman:Currents and Sediment Transport in Western Massachusetts Bay:A pilot winter-time experiment to investigate circulation and sediment transport. Designed to provide information to aid in citing the new ocean outfall for the Boston sewer system.',
-    'MOBILE_BAY':     'B. Butman:Mobile Bay Study:Measure currents and transport out of Mobile Bay.',
-    'MONTEREY_BAY':   'M. Noble:Monterey Bay National Marine Sanctuary Program:Part of a large multi-disciplinary experiment to characterize the geologic environment and to generate a sediment budget.',
-    'MONTEREY_CAN':   'M. Noble:Monterey Canyon Experiment: A program to determine the mechanisms that govern the circulation within and the transport of sediment and water through Monterey Submarine Canyon.',
-    'MVCO_11':        'C. Sherwood: OASIS MVCO 2011: Near-seabed Oceanographic Observations made as part of the 2011 OASIS Project at the MVCO.',
-    'MYRTLEBEACH':    'J. Warner:Myrtle Beach Experiment SC:Measurements collected as part of a larger study to understand the physical processes that control the transport of sediments in Long Bay South Carolina.',
-    'NE_SLOPE':       'B. Butman:Currents on the New England Continental Slope:A study designed to describe the currents and to investigate the transport of sediment from the shelf to the slope.',
-    'OCEANOG_C':      'B. Butman:Oceanographer Canyon Dynamics Experiment:A field experiment to determine the importance of submarine canyons in sediment transport along and across the continental margin.',
-    'ORANGE_COUNTY':  'M. Noble:Orange County Sanitation District Studies:Observations to monitor coastal ocean process that transport suspended material and associated comtaminants across the shelf.',
-    'PONCHARTRAIN':   'R. Signell:Lake Ponchartrain Project:A series of moored array studies to investigate the circulation and particle transport in Lake Pontchartrain.',
-    'PV_SHELF':       'M. Noble:Palos Verdes Shelf Study:Initial observations of currents and circulation near the White Point ocean outfalls determine how often coastal ocean processes move the DDT contaminated sediments in this region.',
-    'PV_SHELF04':     'M. Noble:Palos Verdes Shelf 2004:Additional observations to estimate the quantity and direction of sediment erosion and transport on the shelf near the White Point ocean outfalls.',
-    'PV_SHELF07':     'M. Noble:Palos Verdes Shelf 2007:Follow-up observations to evaluate how often coastal ocean processes move the DDT contaminated sediments near the White Point ocean outfalls.',
-    'SAB_SED':        'B. Butman:Sediment Transport Observations in the Southern Atlantic Bight:A series of studies to assess environmental hazards to petroleum development in the South Atlantic Bight.',
-    'SOUTHERN_CAL':   'M. Noble:Southern California Project:A series of moorings were deployed to understand how coastal ocean processes that move sediments change with location on the shelf.',
-    'STRESS':         'B. Butman:Sediment Transport on Shelves and Slopes (STRESS):Experiment on the California continental margin to investigate storm-driven sediment transport.',
-    'WFAL':           'N. Ganju:West Falmouth Harbor Fluxes:Oceanographic and water-quality observations made at six locations in West Falmouth Harbor and Buzzards Bay.',
-    'WRIGHTSVILLE':   'R. Thieler:Wrightsville Beach Study: Measurements of bottom currents and waves to investigate the flow field and sediment transport in a rippled scour depression offshore of Wrightsville Beach NC.',
-}
-
 
 def nc_close(nc):
     if nc is not None:
@@ -207,70 +154,15 @@ def nc_close(nc):
             pass
 
 
-def download(folder):
-
-    full_catalog = 'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/catalog.xml'
-    adcp_test = 'http://geoport.whoi.edu/thredds/catalog/usgs/data2/rsignell/data/adcp/catalog.html'
-
-    catalogs = {
-        'ARGO_MERCHANT':  'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/ARGO_MERCHANT/catalog.xml',
-        'BARNEGAT':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BARNEGAT/catalog.xml',
-        'BUZZ_BAY':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BUZZ_BAY/catalog.xml',
-        'BW2011':         'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BW2011/catalog.xml',
-        'CAMP':           'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/CAMP/catalog.xml',
-        'CAPE_COD_BAY':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/CAPE_COD_BAY/catalog.xml',
-        'CC_MISC':        'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/CC_MISC/catalog.xml',
-        'CHANDELEUR':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/CHANDELEUR/catalog.xml',
-        'DEEP_REEF':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/DEEP_REEF/catalog.xml',
-        'DIAMONDSHOALS':  'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/DIAMONDSHOALS/catalog.xml',
-        'DWDS_106':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/DWDS_106/catalog.xml',
-        'ECOHAB_I':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/ECOHAB_I/catalog.xml',
-        'ECOHAB_II':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/ECOHAB_II/catalog.xml',
-        'EUROSTRATAFORM': 'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/EUROSTRATAFORM/catalog.xml',
-        'FARALLONES':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/FARALLONES/catalog.xml',
-        'FI12':           'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/FI12/catalog.xml',
-        'GB_SED':         'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/GB_SED/catalog.xml',
-        'GLOBEC_GB':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/GLOBEC_GB/catalog.xml',
-        'GLOBEC_GSC':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/GLOBEC_GSC/catalog.xml',
-        'GULF_MAINE':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/GULF_MAINE/catalog.xml',
-        'HUDSON_SVALLEY': 'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/HUDSON_SVALLEY/catalog.xml',
-        'HURRIRENE_BB':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/HURRIRENE_BB/catalog.xml',
-        'KARIN_RIDGE':    'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/KARIN_RIDGE/catalog.xml',
-        'LYDONIA_C':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/LYDONIA_C/catalog.xml',
-        'MAB_SED':        'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MAB_SED/catalog.xml',
-        'MAMALA_BAY':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MAMALA_BAY/catalog.xml',
-        'MBAY_CIRC':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_CIRC/catalog.xml',
-        'MBAY_IWAVE':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_IWAVE/catalog.xml',
-        'MBAY_LT':        'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_LT/catalog.xml',
-        'MBAY_LTB':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_LTB/catalog.xml',
-        'MBAY_STELL':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_STELL/catalog.xml',
-        'MBAY_WEST':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MBAY_WEST/catalog.xml',
-        'MOBILE_BAY':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MOBILE_BAY/catalog.xml',
-        'MONTEREY_BAY':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MONTEREY_BAY/catalog.xml',
-        'MONTEREY_CAN':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MONTEREY_CAN/catalog.xml',
-        'MVCO_11':        'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MVCO_11/catalog.xml',
-        'MYRTLEBEACH':    'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/MYRTLEBEACH/catalog.xml',
-        'NE_SLOPE':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/NE_SLOPE/catalog.xml',
-        'OCEANOG_C':      'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/OCEANOG_C/catalog.xml',
-        'ORANGE_COUNTY':  'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/ORANGE_COUNTY/catalog.xml',
-        'PONCHARTRAIN':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/PONCHARTRAIN/catalog.xml',
-        'PV_SHELF':       'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/PV_SHELF/catalog.xml',
-        'PV_SHELF04':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/PV_SHELF04/catalog.xml',
-        'PV_SHELF07':     'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/PV_SHELF07/catalog.xml',
-        'SAB_SED':        'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/SAB_SED/catalog.xml',
-        'SOUTHERN_CAL':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/SOUTHERN_CAL/catalog.xml',
-        'STRESS':         'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/STRESS/catalog.xml',
-        'WFAL':           'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/WFAL/catalog.xml',
-        'WRIGHTSVILLE':   'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/WRIGHTSVILLE/catalog.xml',
-    }
+def download(folder, project_metadata):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
     total_datasets = []
     skips = Crawl.SKIPS + ['.*OTHER.*', '.*ancillary.*']
 
     try:
-        for k, v in catalogs.items():
-            datasets = Crawl(v, select=['.*-[A|a]+\..*'], skip=skips).datasets
+        for k, v in project_metadata.items():
+            datasets = Crawl(v['catalog_xml'], select=['.*-[A|a]+\..*'], skip=skips).datasets
             logger.info("Found {0} datasets in {1}!".format(len(datasets), k))
             total_datasets += datasets
         logger.info("Found {0} TOTAL datasets!".format(len(total_datasets)))
@@ -457,7 +349,7 @@ def normalize_time(netcdf_file):
         time.standard_name  = "time"
         time.long_name      = "time of measurement"
         time.calendar       = "gregorian"
-        time[:] = netCDF4.date2num(time_data, units=epoch_units)
+        time[:] = netCDF4.date2num(time_data, units=epoch_units).round()
     except BaseException:
         logger.exception("Error")
         raise
@@ -465,14 +357,28 @@ def normalize_time(netcdf_file):
         nc_close(nc)
 
 
-def main(output, do_download):
+def main(output, do_download, projects, csv_metadata_file):
+
+    project_metadata = dict()
+    with open(csv_metadata_file, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            project_name = row['project_name']
+            if projects and project_name.lower() not in projects:
+                # Skip projects if a subset was defined
+                continue
+            project_metadata[project_name] = dict()
+            for k, v in row.items():
+                project_metadata[project_name][k] = v
+
+    logger.info(project_metadata)
 
     # Download files
     download_folder = os.path.abspath(os.path.join(".", "download"))
 
     if do_download:
         try:
-            downloaded_files = download(download_folder)
+            downloaded_files = download(download_folder, project_metadata)
         except KeyboardInterrupt:
             downloaded_files = []
     else:
@@ -486,6 +392,14 @@ def main(output, do_download):
 
         temp_file = os.path.join(temp_folder, os.path.basename(down_file))
         shutil.copy(down_file, temp_file)
+
+        if projects:
+            tmpnc = netCDF4.Dataset(temp_file)
+            project_name, _ = tmpnc.id.split("/")
+            nc_close(tmpnc)
+            if project_name.lower() not in projects:
+                # Skip this project!
+                continue
 
         nc = None
         try:
@@ -603,10 +517,9 @@ def main(output, do_download):
                     file_global_attributes['id']               = station_id
                     file_global_attributes['title']            = station_name
                     if project_name in project_metadata:
-                        pi, title, summary = project_metadata.get(project_name).split(':')
-                        file_global_attributes['contributor_name'] = pi
-                        file_global_attributes['project_title']    = title
-                        file_global_attributes['project_summary']  = summary
+                        for k, v in project_metadata[project_name].items():
+                            if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
+                                file_global_attributes[k] = v
 
                     ts = nc.variables.get("time")[:]
 
@@ -640,19 +553,6 @@ def main(output, do_download):
                         variable_name = sensor_urn.split(":")[-1]
                         new_var = new_nc.variables.get(variable_name)
 
-                        """
-                        # Switch to using the 'height' dimension
-                        dims = [ d if d != 'depth' else 'height' for d in old_var.dimensions ]
-                        # No dimensions for
-                        dims = filter(None, [ d if d not in ['lat', 'lon'] else None for d in dims ])
-                        if 'height' in dims and 'height' not in nc.dimensions:
-                            if len(nc.dimensions.get('depth')) == 1:
-                                # Remove the depth dimension to match the CF file spec
-                                dims = filter(None, [ d if d != 'height' else None for d in dims ])
-                            else:
-                                logger.info("Skipping: {0}.  It has a Z axis but the core variable '{1}' does not.".format(other, dv))
-                                continue
-                        """
                         other_var = new_nc.createVariable(other, old_var.dtype, new_var.dimensions)
                         for k in old_var.ncattrs():
                             other_var.setncattr(k, old_var.getncattr(k))
@@ -691,5 +591,12 @@ if __name__ == "__main__":
                         action='store_true',
                         default=False,
                         help="Should we download the files or use the temp files?  Useful for debugging.")
+    parser.add_argument('-p', '--projects',
+                        help="Specific projects to process (optional)",
+                        nargs='*')
+    parser.add_argument('-c', '--csv_metadata_file',
+                        help="CSV file to load metadata about each project from.",
+                        default='project_metadata.csv',
+                        nargs='?')
     args = parser.parse_args()
-    main(args.output, args.download)
+    main(args.output, args.download, map(lambda x: x.lower(), args.projects), os.path.realpath(args.csv_metadata_file))
