@@ -590,12 +590,14 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--download',
                         action='store_true',
                         default=False,
-                        help="Should we download the files or use the temp files?  Useful for debugging.")
+                        help="Should we download a new set of files or use the files that have already been downloaded? \
+                             Useful for debugging.  Downloaded files are never altered in any way so you can rerun \
+                             the processing over and over without having to redownload any files.")
     parser.add_argument('-p', '--projects',
-                        help="Specific projects to process (optional)",
+                        help="Specific projects to process (optional).",
                         nargs='*')
     parser.add_argument('-c', '--csv_metadata_file',
-                        help="CSV file to load metadata about each project from.",
+                        help="CSV file to load metadata about each project from.  Defaults to 'project_metadata.csv'.",
                         default='project_metadata.csv',
                         nargs='?')
     args = parser.parse_args()
