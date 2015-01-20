@@ -229,7 +229,7 @@ def download(folder, project_metadata):
             os.remove(save_file)
             raise
         else:
-            logger.info("{!s} saved ({!s}/{!s})".format(num + 1, len(total_datasets)))
+            logger.info("{!s} saved ({!s}/{!s})".format(d.name, num + 1, len(total_datasets)))
             saved_files.append(save_file)
         finally:
             nc_close(nc)
