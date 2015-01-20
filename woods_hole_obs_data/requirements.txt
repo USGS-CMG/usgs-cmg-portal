@@ -3,3 +3,4 @@ netCDF4
 thredds_crawler
 requests
 coloredlogs
+epic2cf

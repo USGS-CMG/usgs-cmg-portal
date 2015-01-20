@@ -7,7 +7,7 @@ This is a python script to download and process NetCDF data from `http://geoport
 ```bash
 $ git clone https://github.com/axiomalaska/usgs-cmg-portal.git
 $ cd usgs-cmg-portal/woods_hole_obs_data
-$ pip install -r requirments.txt
+$ pip install -r requirements.txt
 ```
 
 
@@ -35,6 +35,11 @@ project_name,contributor_name,project_title,project_summary,catalog_xml
 $ python collect.py --help
 usage: collect.py [-h] -o [OUTPUT] [-d] [-p [PROJECTS [PROJECTS ...]]]
                   [-c [CSV_METADATA_FILE]]
+                  {axiom,cf16}
+
+positional arguments:
+  {axiom,cf16}          Which type of file to produce. You most likely want
+                        'cf16'.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -55,31 +60,35 @@ optional arguments:
 
 ### Examples
 
-##### Download and create NetCDF files for a single project
+##### Download and create CF-1.6 NetCDF files for a single project
 ```bash
 python collect.py --download \
+                  --projects SOUTHERN_CAL \
                   --output=./output/ \
-                  --projects SOUTHERN_CAL
+                  cf16
 ```
 
 ##### Download and create NetCDF files for multiple projects
 ```bash
 python collect.py --download \
+                  --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH \
                   --output=./output/ \
-                  --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH
+                  cf16
 ```
 
 
 ##### Specify a different CSV metadata file
 ```bash
 python collect.py --download \
-                  --output=./output/
-                  --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH
-                  --csv_metadata_file /some/path/to/your/file.csv
+                  --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH \
+                  --output=./output/ \
+                  --csv_metadata_file /some/path/to/your/file.csv \
+                  cf16
 ```
 
 ##### Reprocess already downloaded files with new CSV metadata
 ```bash
-python collect.py --output=./output/ \
-                  --projects SOUTHERN_CAL
+python collect.py --projects SOUTHERN_CAL \
+                  --output=./output/ \
+                  cf16
 ```
