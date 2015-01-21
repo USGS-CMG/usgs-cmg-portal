@@ -382,7 +382,7 @@ def normalize_time(netcdf_file):
         nc_close(nc)
 
 
-def main(output, do_download, output_format, projects, csv_metadata_file):
+def main(output, download_folder, do_download, output_format, projects, csv_metadata_file):
 
     project_metadata = dict()
     with open(csv_metadata_file, 'r') as f:
@@ -395,11 +395,6 @@ def main(output, do_download, output_format, projects, csv_metadata_file):
             project_metadata[project_name] = dict()
             for k, v in row.items():
                 project_metadata[project_name][k] = v
-
-    logger.info(project_metadata)
-
-    # Download files
-    download_folder = os.path.abspath(os.path.join(".", "download"))
 
     if do_download:
         try:
@@ -843,6 +838,11 @@ if __name__ == "__main__":
                         help="Should we download a new set of files or use the files that have already been downloaded? \
                              Useful for debugging.  Downloaded files are never altered in any way so you can rerun \
                              the processing over and over without having to redownload any files.")
+    parser.add_argument('-f', '--folder',
+                        default=os.path.abspath(os.path.join(".", "download")),
+                        help="Specify the folder location of NetCDF files you wish to translate. If this is used along with '--download', the files \
+                              will be downloaded into this folder and then processed.  If used without the '--download' option, this is the \
+                              location of the root folder you wish to translate into NetCDF files."),
     parser.add_argument('-p', '--projects',
                         help="Specific projects to process (optional).",
                         nargs='*')
@@ -855,4 +855,4 @@ if __name__ == "__main__":
     projects = args.projects
     if projects:
         projects = map(lambda x: x.lower(), args.projects)
-    main(args.output, args.download, args.format, projects, os.path.realpath(args.csv_metadata_file))
+    main(args.output, args.folder, args.download, args.format, projects, os.path.realpath(args.csv_metadata_file))

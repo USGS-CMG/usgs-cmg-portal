@@ -33,8 +33,8 @@ project_name,contributor_name,project_title,project_summary,catalog_xml
 ##### See what the program supports
 ```bash
 $ python collect.py --help
-usage: collect.py [-h] -o [OUTPUT] [-d] [-p [PROJECTS [PROJECTS ...]]]
-                  [-c [CSV_METADATA_FILE]]
+usage: collect.py [-h] -o [OUTPUT] [-d] [-f FOLDER]
+                  [-p [PROJECTS [PROJECTS ...]]] [-c [CSV_METADATA_FILE]]
                   {axiom,cf16}
 
 positional arguments:
@@ -50,6 +50,13 @@ optional arguments:
                         debugging. Downloaded files are never altered in any
                         way so you can rerun the processing over and over
                         without having to redownload any files.
+  -f FOLDER, --folder FOLDER
+                        Specify the folder location of NetCDF files you wish
+                        to translate. If this is used along with '--download',
+                        the files will be downloaded into this folder and then
+                        processed. If used without the '--download' option,
+                        this is the location of the root folder you wish to
+                        translate into NetCDF files.
   -p [PROJECTS [PROJECTS ...]], --projects [PROJECTS [PROJECTS ...]]
                         Specific projects to process (optional).
   -c [CSV_METADATA_FILE], --csv_metadata_file [CSV_METADATA_FILE]
