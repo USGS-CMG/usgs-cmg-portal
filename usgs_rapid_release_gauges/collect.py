@@ -3,40 +3,35 @@
 
 import os
 import sys
-import json
-import random
-import string
-import shutil
 import logging
 import argparse
 import calendar
 from datetime import datetime
 
-import numpy as np
 import pytz
 import requests
-import netCDF4
 from bs4 import BeautifulSoup
 
-from pytools.netcdf.sensors.create import create_timeseries_file
+from pytools.netcdf.sensors.create import create_timeseries_file, TimeSeries
 
 from dateutil.parser import parse
 
-from pyproj import Proj, transform
-
+import numpy as np
 import pandas as pd
+
+import coloredlogs
+
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.WARN)
 
 # Log to stdout
 logger = logging.getLogger()
+coloredlogs.install(level=logging.INFO)
 logger.setLevel(logging.INFO)
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
 
-def main(output):
+
+def main(output_format, output):
 
     waf = "http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/"
 
@@ -50,7 +45,7 @@ def main(output):
             continue
 
         csv_link = waf + link['href']
-        logger.info(csv_link)
+        logger.info("Downloading '{}'".format(csv_link))
         d = requests.get(csv_link)
         try:
             d.raise_for_status()
@@ -61,13 +56,14 @@ def main(output):
         contents = d.text
         for line in contents.split("\n"):
             if "agency_cd" in line:
-                parse_type_1(site_id, contents, output, csv_link)
+                parse_type_1(output_format, site_id, contents, output, csv_link)
                 break
             elif "date_time_GMT" in line:
-                parse_type_2(site_id, contents, output, csv_link)
+                parse_type_2(output_format, site_id, contents, output, csv_link)
                 break
             else:
                 continue
+
 
 def split_file(c, data_key):
     comments = list()
@@ -89,7 +85,8 @@ def split_file(c, data_key):
 
     return comments, headers, data
 
-def parse_type_1(site_id, contents, output, csv_link):
+
+def parse_type_1(output_format, site_id, contents, output, csv_link):
     """
     # ---------------------------------- WARNING ----------------------------------------
     # The data you have obtained from this automated U.S. Geological Survey database
@@ -232,7 +229,18 @@ def parse_type_1(site_id, contents, output, csv_link):
             return fillvalue
 
     full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
+    times = [ calendar.timegm(x.timetuple()) for x in df["datetime"] ]
+
+    if output_format == 'cf16':
+        output_filename = '{}_{}-{}.nc'.format(site_id, df["datetime"].min().strftime('%Y%m%dT%H%M%S'), df["datetime"].max().strftime('%Y%m%dT%H%M%S'))
+        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=[z])
+
     for var in df.columns[2:]:
+        try:
+            int(var[0])
+            variable_name = 'v_{}'.format(var)
+        except:
+            variable_name = var
         try:
             var_meta = variable_map[var]
         except KeyError:
@@ -240,25 +248,37 @@ def parse_type_1(site_id, contents, output, csv_link):
             continue
 
         full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-        times     = [ calendar.timegm(x.timetuple()) for x in df["datetime"] ]
         values    = df[var].map(to_floats)
         if var_meta["units"] in ["feet", "ft"]:
-            values = [ v * 0.3048 if v != fillvalue else v for v in values ]
+            values = np.asarray([ v * 0.3048 if v != fillvalue else v for v in values ])
             var_meta["units"] = "meters"
-        verticals = [ z for x in range(len(times)) ]
+        else:
+            # Convert Series to Numpy array
+            values = values.values
 
-        try:
-            assert len(verticals) == len(times) == len(values)
-        except AssertionError:
-            logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
-            logger.error(df)
+        if output_format == 'axiom':
+            verticals = [ z for x in range(len(times)) ]
+            try:
+                assert len(verticals) == len(times) == len(values)
+            except AssertionError:
+                logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
+                logger.error(df)
+            data = zip(times, verticals, values)
+            output_directory = os.path.join(output, full_sensor_urn)
+            create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+        elif output_format == 'cf16':
+            try:
+                assert len(times) == len(values)
+            except AssertionError:
+                logger.error("Sizes not compatible.  Times: {!s}, Values: {!s}".format(len(times), len(values)))
+                logger.error(df)
+            ts.add_variable(variable_name, values=values, attributes=var_meta, fillvalue=fillvalue)
 
-        data = zip(times, verticals, values)
-        output_directory = os.path.join(output, full_sensor_urn)
-        create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+    if output_format == 'cf16':
+        ts.close()
 
 
-def parse_type_2(site_id, contents, output, csv_link):
+def parse_type_2(output_format, site_id, contents, output, csv_link):
     """
     # These data are provisional and subject to revision.
     # Data processed as of 12/05/2012 11:54:29.
@@ -367,7 +387,19 @@ def parse_type_2(site_id, contents, output, csv_link):
     )
 
     full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
+    times = [ calendar.timegm(x.timetuple()) for x in df["date_time_GMT"] ]
+
+    if output_format == 'cf16':
+        output_filename = '{}_{}-{}.nc'.format(site_id, df["date_time_GMT"].min().strftime('%Y%m%dT%H%M%S'), df["date_time_GMT"].max().strftime('%Y%m%dT%H%M%S'))
+        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=[z])
+
     for var in df.columns[1:]:
+        try:
+            int(var[0])
+            variable_name = 'v_{}'.format(var)
+        except:
+            variable_name = var
+
         try:
             var_meta = variable_map[var]
         except KeyError:
@@ -375,29 +407,42 @@ def parse_type_2(site_id, contents, output, csv_link):
             continue
 
         full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-        times     = [ calendar.timegm(x.timetuple()) for x in df["date_time_GMT"] ]
         values    = df[var].map(to_floats)
         if var_meta["units"] in ["feet", "ft"]:
             values = [ v * 0.3048 if v != fillvalue else v for v in values ]
             var_meta["units"] = "meters"
-        verticals = [ z for x in range(len(times)) ]
+        else:
+            # Convert Series to Numpy array
+            values = values.values
 
-        try:
-            assert len(verticals) == len(times) == len(values)
-        except AssertionError:
-            logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
-            logger.error(df)
+        if output_format == 'axiom':
+            verticals = [ z for x in range(len(times)) ]
+            try:
+                assert len(verticals) == len(times) == len(values)
+            except AssertionError:
+                logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
+                logger.error(df)
+            data = zip(times, verticals, values)
+            output_directory = os.path.join(output, full_sensor_urn)
+            create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+        elif output_format == 'cf16':
+            try:
+                assert len(times) == len(values)
+            except AssertionError:
+                logger.error("Sizes not compatible.  Times: {!s}, Values: {!s}".format(len(times), len(values)))
+                logger.error(df)
+            ts.add_variable(variable_name, values=values, attributes=var_meta, fillvalue=fillvalue)
 
-        data = zip(times, verticals, values)
-        output_directory = os.path.join(output, full_sensor_urn)
-        create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+    if output_format == 'cf16':
+        ts.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('format', action='store', choices=('axiom', 'cf16',), help="Which type of file to produce. You most likely want 'cf16'.")
     parser.add_argument('-o', '--output',
                         required=True,
                         help="Directory to output NetCDF files to",
                         nargs='?')
     args          = parser.parse_args()
-    main(args.output)
+    main(args.format, args.output)
