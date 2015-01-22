@@ -2,7 +2,6 @@
 # coding=utf-8
 
 import os
-import sys
 import logging
 import argparse
 import calendar
@@ -28,7 +27,6 @@ requests_log.setLevel(logging.WARN)
 logger = logging.getLogger()
 coloredlogs.install(level=logging.INFO)
 logger.setLevel(logging.INFO)
-
 
 
 def main(output_format, output):
