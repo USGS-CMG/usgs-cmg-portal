@@ -24,11 +24,6 @@ import coloredlogs
 logger = logging.getLogger()
 coloredlogs.install(level=logging.INFO)
 logger.setLevel(logging.INFO)
-fh = logging.FileHandler('usgs_cmg.log')
-fh.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - [%(levelname)s] %(message)s')
-fh.setFormatter(formatter)
-logger.addHandler(fh)
 
 # Don't show the HTTP connection spam
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
