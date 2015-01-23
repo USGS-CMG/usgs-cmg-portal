@@ -16,7 +16,11 @@ import netCDF4
 import numpy as np
 
 from thredds_crawler.crawl import Crawl
-from pytools.netcdf.sensors.create import create_timeseries_file
+try:
+    from pytools.netcdf.sensors.create import create_timeseries_file
+except ImportError:
+    pass
+from pyaxiom.netcdf.sensors import TimeSeries
 
 import coloredlogs
 
@@ -29,6 +33,8 @@ logger.setLevel(logging.INFO)
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
 crawler_log = logging.getLogger("thredds_crawler").setLevel(logging.INFO)
 epic_log = logging.getLogger("epic2cf").setLevel(logging.INFO)
+pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.INFO)
+pytools_log = logging.getLogger("pytools").setLevel(logging.INFO)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
@@ -152,9 +158,8 @@ global_attributes = {
 coord_vars      = ['time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'depth005', 'lat', 'lon']
 
 
-# Has depths: EUROSTRATAFORM, GLOBEC_GB
+# Has depths and bottom variables: EUROSTRATAFORM, GLOBEC_GB
 # Has mutiple depth variables (depth1, depth2, depth3, etc.): MOBILE_BAY /home/kwilcox/Development/usgs_cmg_woods_hole/download/3951tct-a.cdf
-# ADCP with a bottom temperature variable that isn't varying by depth: /home/kwilcox/Development/usgs_cmg_woods_hole/download/6551adc-a.nc
 
 
 def nc_close(nc):
@@ -182,8 +187,10 @@ def download(folder, project_metadata):
         logger.info("Breaking out of crawling loop.")
         total_datasets = []
 
-    shutil.rmtree(folder, ignore_errors=True)
-    os.makedirs(folder)
+    try:
+        os.makedirs(folder)
+    except OSError:
+        pass
 
     # Save datasets to download directory
     saved_files = []
@@ -356,6 +363,7 @@ def normalize_time(netcdf_file):
     epoch_units       = 'seconds since 1970-01-01T00:00:00Z'
     millisecond_units = 'milliseconds since 1858-11-17T00:00:00Z'
 
+    nc = None
     try:
         nc = netCDF4.Dataset(netcdf_file, 'a')
         # Signell said this works, any problems and we can all blame him!
@@ -401,27 +409,30 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
 
     temp_folder = os.path.abspath(os.path.join(".", "temp"))
     shutil.rmtree(temp_folder, ignore_errors=True)
-    os.makedirs(temp_folder)
+    try:
+        os.makedirs(temp_folder)
+    except OSError:
+        pass  # Exists
 
     for down_file in downloaded_files:
 
         # For debugging
-        #if os.path.basename(down_file) != "5881adc-a.nc":
+        #if os.path.basename(down_file) != "8451met-a.nc":
         #    continue
-
-        temp_file = os.path.join(temp_folder, os.path.basename(down_file))
-        shutil.copy(down_file, temp_file)
-
-        if projects:
-            tmpnc = netCDF4.Dataset(temp_file)
-            project_name, _ = tmpnc.id.split("/")
-            nc_close(tmpnc)
-            if project_name.lower() not in projects:
-                # Skip this project!
-                continue
-
-        nc = None
         try:
+            temp_file = os.path.join(temp_folder, os.path.basename(down_file))
+            shutil.copy(down_file, temp_file)
+
+            if projects:
+                tmpnc = netCDF4.Dataset(temp_file)
+                project_name, _ = tmpnc.id.split("/")
+                nc_close(tmpnc)
+                if project_name.lower() not in projects:
+                    # Skip this project!
+                    continue
+
+            nc = None
+
             # Cleanup to CF-1.6
             normalize_time(temp_file)
             normalize_epic_codes(temp_file)
@@ -468,7 +479,6 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
             station_urn = "urn:ioos:station:{0}:{1}".format('gov.usgs.cmgp', station_id).lower()
 
             logger.info("FILE: {0}".format(down_file))
-            #logger.info("STATION: {0}".format(station_urn))
 
             def create_axiom():
                 data_variables  = list()
@@ -594,7 +604,6 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
             def create_cf16():
                 file_name = os.path.basename(down_file)
                 logger.debug("Exporting CF1.6 format: {0}".format(file_name))
-                #logger.info("Creating file with the following variables: {!s}".format(other_variables + [dv]))
                 file_name = os.path.basename(down_file)
                 output_directory = os.path.join(output, project_name)
 
@@ -610,61 +619,8 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
                         if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
                             file_global_attributes[k] = v
 
-                # Compute additional metadata
-                file_global_attributes['time_coverage_start'] = starting.isoformat()
-                file_global_attributes['time_coverage_end'] = ending.isoformat()
-                # duration (ISO8601 format)
-                file_global_attributes['time_coverage_duration'] = "P%sS" % unicode(int(round((ending - starting).total_seconds())))
-                # resolution (ISO8601 format)
-                # subtract adjacent times to produce an array of differences, then get the most common occurance
-                unique_times = np.unique(nc.variables.get('time')[:])
-                diffs = unique_times[1:] - unique_times[:-1]
-                uniqs, inverse = np.unique(diffs, return_inverse=True)
-                time_diffs = diffs[np.bincount(inverse).argmax()]
-                file_global_attributes['time_coverage_resolution'] = "P%sS" % unicode(int(round(time_diffs)))
-
-                new_nc = netCDF4.Dataset(os.path.join(output_directory, file_name), 'w')
-                new_nc.createDimension("time", nc.variables.get('time').size)
-
-                # Location
-                lat = new_nc.createVariable("latitude", "f8")
-                lat.units           = "degrees_north"
-                lat.standard_name   = "latitude"
-                lat.long_name       = "sensor latitude"
-                lat[:] = latitude
-                file_global_attributes['geospatial_lat_min'] = latitude
-                file_global_attributes['geospatial_lat_max'] = latitude
-
-                lon = new_nc.createVariable("longitude", "f8")
-                lon.units           = "degrees_east"
-                lon.standard_name   = "longitude"
-                lon.long_name       = "sensor longitude"
-                lon[:] = longitude
-                file_global_attributes['geospatial_lon_min'] = longitude
-                file_global_attributes['geospatial_lon_max'] = longitude
-
-                # Station name
+                times           = nc.variables.get('time')[:]
                 feature_name, _ = os.path.splitext(os.path.basename(down_file))
-                new_nc.createDimension("site_name", len(feature_name))
-                site = new_nc.createVariable("site", "S1", ("site_name",))
-                site.cf_role = "timeseries_id"
-                site.standard_site = "station_id"
-                site.long_name = "Identifier for each site"
-                site[:] = list(feature_name)
-
-                # Metadata variables
-                crs = new_nc.createVariable("crs", "i4")
-                crs.long_name           = "http://www.opengis.net/def/crs/EPSG/0/4326"
-                crs.grid_mapping_name   = "latitude_longitude"
-                crs.epsg_code           = "EPSG:4326"
-                crs.semi_major_axis     = float(6378137.0)
-                crs.inverse_flattening  = float(298.257223563)
-
-                platform = new_nc.createVariable("platform", "i4")
-                platform.ioos_code  = station_urn
-                platform.short_name = global_attributes.get("title", station_urn)
-                platform.long_name  = global_attributes.get("description", station_urn)
-
                 # Get all depth values
                 depth_variables = []
                 for dv in nc.variables:
@@ -672,137 +628,73 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
                 depth_variables = sorted(list(set(depth_variables)))
                 depth_values = np.asarray([ nc.variables.get(x)[:] for x in depth_variables ]).flatten()
 
-                depth_var = None
-                if depth_values.size == 1:
-                    depth_var = new_nc.createVariable('depth', 'f4')
-                elif depth_values.size > 0:
-                    new_nc.createDimension('depth', depth_values.size)
-                    depth_var = new_nc.createVariable('depth', 'f4', ('depth', ))
-
-                if depth_var is not None:
-                    for k in nc.variables.get(depth_variables[0]).ncattrs():
-                        if k not in ['_FillValue', 'missing_value']:
-                            depth_var.setncattr(k, nc.variables.get(depth_variables[0]).getncattr(k))
-                    depth_var.axis = "Z"
-                    depth_var.positive = "down"
-                    depth_var[:] = depth_values
-
-                def create_variable_from_old(netcdf, old_var, new_var_name=None, new_dims=None):
-                    if hasattr(old_var, "_FillValue"):
-                        new_var = netcdf.createVariable(new_var_name or old_var.name, old_var.dtype, new_dims or old_var.dimensions, fill_value=old_var._FillValue, zlib=True)
-                    else:
-                        new_var = netcdf.createVariable(new_var_name or old_var.name, old_var.dtype, new_dims or old_var.dimensions, zlib=True)
-                    for k in old_var.ncattrs():
-                        try:
-                            if k not in ['_FillValue', 'missing_value']:
-                                new_var.setncattr(k, old_var.getncattr(k))
-                        except AttributeError:
-                            # Already has this attribute.  Bug in netCDF C library < 4.2
-                            pass
-                    # Remove whitespace from long_name
-                    if hasattr(new_var, 'long_name'):
-                        new_var.long_name = new_var.long_name.strip()
-                    return new_var
+                ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name)
 
                 v = []
-                for other in nc.variables:
+                for other in sorted(nc.variables):  # Sorted for a reason... don't change!
+                    if other in coord_vars:
+                        continue
+
                     old_var = nc.variables.get(other)
-                    new_dims = []
-                    if 'time' in old_var.dimensions:
-                        new_dims += ['time']
-                    if depth_values.size > 1 and (old_var.ndim > 3 or 'depth' in old_var.dimensions):
-                        new_dims += ['depth']
+                    variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
 
-                    new_coords = None
-                    if other in ['lat', 'lon', 'old_time', 'time2', 'time_cf', 'depth', 'depth002', 'depth003', 'depth004', 'depth005']:
-                        continue
-                    elif 'time' in old_var.dimensions and 'depth' in old_var.dimensions:
-                        new_coords = 'time depth latitude longitude'
-                    elif depth_values.size > 1 and 'time' in old_var.dimensions and 'depth' not in old_var.dimensions and other != 'time':
-                        # Special case bottom transducer temp
-                        new_coords = 'time depth latitude longitude'
-                    else:
-                        # We just copy these variables...
-                        logger.info('Copying {}'.format(other))
-                        new_var = create_variable_from_old(new_nc, old_var, other, new_dims)
-                        new_var[:] = old_var[:]
+                    fillvalue = None
+                    if hasattr(old_var, "_FillValue"):
+                        fillvalue = old_var._FillValue
+
+                    # Figure out if this is a variable that is repeated at different depths
+                    # as different variable names.   Assumes sorted.
+                    new_var_name = other.split('_')[0]
+                    if new_var_name in ts.ncd.variables:
+                        # Already in new file.
                         continue
 
-                    old_depth_variable = None
-                    if len(depth_variables) > 1:
-                        old_depth_variable = [ x for x in old_var.dimensions if 'depth' in x ][0]
-                        # Normalize the variable name
-                        new_var_name = other.split("_")[0]
-                        if not nc.variables.get(new_var_name):
-                            # Try to match
-                            new_var_name = other.split("_")[0] + "_1"  # sorted([ x for x in nc.variables if hasattr(nc.variables.get(x), 'long_name') and nc.variables.get(x).long_name == ])[0]
-                            if not nc.variables.get(new_var_name):
-                                # Fall back to the original name.
-                                new_var_name = other
-                                logger.info('Could not match "{}" to any additional variables at varying depths'.format(other))
+                    # Get the depth index
+                    depth_variable = [ x for x in old_var.dimensions if 'depth' in x ]
+                    if depth_variable and len(old_var.dimensions) > 1 and 'time' in old_var.dimensions:
+                        depth_index = np.squeeze(np.where(depth_values == nc.variables.get(depth_variable[0])[:]))
 
-                        if new_nc.variables.get(new_var_name):
-                            new_var = new_nc.variables.get(new_var_name)
-                        else:
-                            new_var = create_variable_from_old(new_nc, old_var, new_var_name, new_dims)
+                        # Find other variable names like this one
+                        depth_indexes = [(other, depth_index)]
+                        for search_var in sorted(nc.variables):
+                            if search_var != other and search_var.split('_')[0] == new_var_name:
+                                # Found a match at a different depth
+                                search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
+                                depth_index = np.squeeze(np.where(depth_values == nc.variables.get(search_depth_variable[0])[:]))
+                                depth_indexes.append((search_var, depth_index))
+
+                        values = np.ma.empty((times.size, len(depth_values)))
+                        values.fill_value = fillvalue
+                        values.mask = True
+                        for nm, index in depth_indexes:
+                            values[:, index] = np.squeeze(nc.variables.get(nm)[:])
+
+                        if len(depth_indexes) == 1:
+                            # Just use the original variable name
+                            new_var_name = other
+
+                        # Create this one, should be the first we encounter for this type
+                        ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                    elif depth_variable and 'time' not in old_var.dimensions:
+                        # elif (depth_variable and len(old_var.dimensions) == 1 and 'depth' == old_var.dimensions[0]) or \
+                        # Metadata variable like bin distance
+                        meta_var = ts.ncd.createVariable(other, old_var.dtype, ('z',), fill_value=fillvalue)
+                        for k, v in variable_attributes.iteritems():
+                            if k != '_FillValue':
+                                setattr(meta_var, k, v)
                     else:
-                        new_var_name = other
-                        new_var = create_variable_from_old(new_nc, old_var, new_var_name, new_dims)
-
-                    # Set 'crs' and 'coordinates' attributes on data variables
-                    new_var.coordinates = new_coords
-                    new_var.grid_mapping = 'crs'
-
-                    # Figure out the depth index for this variable
-                    if old_depth_variable:
-                        if old_depth_variable == 'depth':
-                            depth_index = 0
+                        values = old_var[:]
+                        if len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
+                            # Metadata variables like pitch, roll, record count, etc.
+                            ts.add_variable(other, values=values, times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                        elif depth_values.size > 1:
+                            # Non Z variables in a profile datase, aka Bottom Temperature
+                            ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         else:
-                            try:
-                                depth_index = int(old_depth_variable[-3:]) - 1
-                            except ValueError:
-                                logger.exception("Could not pull the correct depth index!!")
-                                continue
+                            ts.add_variable(other, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
 
-                        logger.info('Copying {} {} into {} {} at depth index {}'.format(other, old_var.dimensions, new_var_name, new_var.dimensions, depth_index))
-                        new_var[:, depth_index] = old_var[:]
-                    else:
-                        logger.info("Copying {} into {}".format(other, new_var_name))
-                        try:
-                            new_var[:] = old_var[:]
-                        except BaseException:
-                            logger.exception("Error!  Skipping {}".format(new_var_name))
-                    new_nc.sync()
-
-                # Handle temperature at ADCP transducer heads
-                sensor_depth = None
-                if hasattr(nc, 'inst_depth'):
-                    sensor_depth = nc.inst_depth
-                elif hasattr(nc, 'nominal_sensor_depth'):
-                    sensor_depth = nc.nominal_sensor_depth
-
-                if sensor_depth is not None:
-                    inst_depth = new_nc.createVariable('sensor_depth', 'f4')
-                    inst_depth.units = 'm'
-                    inst_depth.standard_name = 'surface_altitude'
-                    inst_depth.long_name = 'sensor depth below datum'
-                    inst_depth.positive = 'up'
-                    inst_depth.datum = 'NAVD88'
-                    inst_depth[:] = sensor_depth
-
-                unique_verticals = np.unique(new_nc.variables.get('depth')[:])
-                file_global_attributes['geospatial_vertical_positive'] = "down"
-                file_global_attributes['geospatial_vertical_min']      = np.min(unique_verticals)
-                file_global_attributes['geospatial_vertical_max']      = np.max(unique_verticals)
-                if unique_verticals.size > 1:
-                    vertical_diffs = unique_verticals[1:] - unique_verticals[:-1]
-                    file_global_attributes['geospatial_vertical_resolution'] = " ".join(map(unicode, list(vertical_diffs)))
-                    file_global_attributes['featureType'] = 'timeSeriesProfile'
-                elif unique_verticals.size == 1:
-                    file_global_attributes['featureType'] = 'timeSeries'
-
-                new_nc.setncatts(file_global_attributes)
-                new_nc.close()
+                    ts.ncd.sync()
+                ts.ncd.close()
 
             if output_format.lower() == 'axiom':
                 create_axiom()

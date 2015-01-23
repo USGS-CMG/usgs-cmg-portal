@@ -5,7 +5,7 @@ This is a python script to download and process NetCDF data from `http://geoport
 ### Installation
 
 ```bash
-$ git clone https://github.com/axiomalaska/usgs-cmg-portal.git
+$ git clone https://github.com/axiom-data-science/usgs-cmg-portal.git
 $ cd usgs-cmg-portal/woods_hole_obs_data
 $ pip install -r requirements.txt
 ```
