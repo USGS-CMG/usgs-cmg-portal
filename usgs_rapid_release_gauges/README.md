@@ -5,7 +5,7 @@ This is a python script to download and process NetCDF data from `http://ga.wate
 ### Installation
 
 ```bash
-$ git clone https://github.com/axiomalaska/usgs-cmg-portal.git
+$ git clone https://github.com/axiom-data-science/usgs-cmg-portal.git
 $ cd usgs-cmg-portal/usgs_rapid_release_gauges
 $ pip install -r requirements.txt
 ```
