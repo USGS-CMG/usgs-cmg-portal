@@ -35,11 +35,6 @@ project_name,contributor_name,project_title,project_summary,catalog_xml
 $ python collect.py --help
 usage: collect.py [-h] -o [OUTPUT] [-d] [-f FOLDER]
                   [-p [PROJECTS [PROJECTS ...]]] [-c [CSV_METADATA_FILE]]
-                  {axiom,cf16}
-
-positional arguments:
-  {axiom,cf16}          Which type of file to produce. You most likely want
-                        'cf16'.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -71,16 +66,14 @@ optional arguments:
 ```bash
 python collect.py --download \
                   --projects SOUTHERN_CAL \
-                  --output=./output/ \
-                  cf16
+                  --output=./output/
 ```
 
 ##### Download and create NetCDF files for multiple projects
 ```bash
 python collect.py --download \
                   --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH \
-                  --output=./output/ \
-                  cf16
+                  --output=./output/
 ```
 
 
@@ -89,13 +82,11 @@ python collect.py --download \
 python collect.py --download \
                   --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH \
                   --output=./output/ \
-                  --csv_metadata_file /some/path/to/your/file.csv \
-                  cf16
+                  --csv_metadata_file /some/path/to/your/file.csv
 ```
 
 ##### Reprocess already downloaded files with new CSV metadata
 ```bash
 python collect.py --projects SOUTHERN_CAL \
-                  --output=./output/ \
-                  cf16
+                  --output=./output/
 ```
