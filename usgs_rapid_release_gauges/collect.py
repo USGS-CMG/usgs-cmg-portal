@@ -135,20 +135,20 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
         '04_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
         '05_00035' : {'long_name' : 'Wind Speed', 'standard_name' : 'wind_speed', 'units': 'mph'},
         '06_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
-        '04_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': '°TN'},
-        '02_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': '°TN'},
+        '04_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
+        '02_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
         '05_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
         '07_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
         '09_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
         '03_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
         '08_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
         '09_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
-        '06_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': '%'},
-        '07_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': '%'},
-        '08_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': '%'},
-        '05_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': '°C'},
-        '06_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': '°C'},
-        '07_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': '°C'},
+        '06_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+        '07_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+        '08_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+        '05_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
+        '06_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
+        '07_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
         '19_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
         '01_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
     }
@@ -190,7 +190,8 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
             # Remove row.  Bad date.
             df.drop(i, axis=0, inplace=True)
             continue
-    df["datetime"] = new_dates
+    df['time'] = new_dates
+    df['depth'] = [ z for x in range(len(df['time'])) ]
 
     # Strip out "_cd" columns (quality checks for USGS)
     for h in headers:
@@ -230,51 +231,49 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
         except ValueError:
             return fillvalue
 
+    min_time = df['time'].min()
+    max_time = df['time'].max()
+
     full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
-    times = [ calendar.timegm(x.timetuple()) for x in df["datetime"] ]
-
     if output_format == 'cf16':
-        output_filename = '{}_{}-{}.nc'.format(site_id, df["datetime"].min().strftime('%Y%m%dT%H%M%S'), df["datetime"].max().strftime('%Y%m%dT%H%M%S'))
-        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=[z])
+        output_filename = '{}_{}-{}.nc'.format(site_id, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
+        times = [ calendar.timegm(x.timetuple()) for x in df["time"] ]
+        verticals = df['depth'].values
+        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals)
 
-    for var in df.columns[2:]:
-        try:
-            int(var[0])
-            variable_name = 'v_{}'.format(var)
-        except:
-            variable_name = var
+    for var in df.columns:
+        if var in ['datetime', 'time', 'depth', 'tz_cd', 'site_no', 'agency_cd']:
+            continue
+
         try:
             var_meta = variable_map[var]
         except KeyError:
             logger.error("Variable {!s} was not found in variable map!".format(var))
             continue
 
-        full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-        values    = df[var].map(to_floats)
+        # Convert to floats
+        df[var] = df[var].map(to_floats)
+
+        # Change feet to meters
         if var_meta["units"] in ["feet", "ft"]:
-            values = np.asarray([ v * 0.3048 if v != fillvalue else v for v in values ])
+            df[var] = np.asarray([ v * 0.3048 if v != fillvalue else v for v in df[var] ])
             var_meta["units"] = "meters"
-        else:
-            # Convert Series to Numpy array
-            values = values.values
 
         if output_format == 'axiom':
-            verticals = [ z for x in range(len(times)) ]
-            try:
-                assert len(verticals) == len(times) == len(values)
-            except AssertionError:
-                logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
-                logger.error(df)
-            data = zip(times, verticals, values)
+            full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
             output_directory = os.path.join(output, full_sensor_urn)
-            create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+            output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
+            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var)
+            ts.add_instrument_metadata(urn=full_sensor_urn)
+            ts.close()
         elif output_format == 'cf16':
+            # Variable names shouldn't start with a number
             try:
-                assert len(times) == len(values)
-            except AssertionError:
-                logger.error("Sizes not compatible.  Times: {!s}, Values: {!s}".format(len(times), len(values)))
-                logger.error(df)
-            ts.add_variable(variable_name, values=values, attributes=var_meta, fillvalue=fillvalue)
+                int(var[0])
+                variable_name = 'v_{}'.format(var)
+            except:
+                variable_name = var
+            ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
 
     if output_format == 'cf16':
         ts.close()
@@ -336,8 +335,6 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
     df = pd.DataFrame(data, columns=headers)
     fillvalue = -9999.9
 
-    df["date_time_GMT"] = df["date_time_GMT"].map(lambda x: parse(x + " UTC"))
-
     lat     = None
     lon     = None
     z       = 0
@@ -360,6 +357,8 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
                 z *= 0.3048
 
     loc = "POINT({!s} {!s} {!s})".format(lon, lat, z)
+    df['time'] = df["date_time_GMT"].map(lambda x: parse(x + " UTC"))
+    df['depth'] = [ z for x in range(len(df['time'])) ]
 
     # Add global attributes to appear in the resulting NetCDF file
     global_attributes = dict(
@@ -389,13 +388,18 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
     )
 
     full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
-    times = [ calendar.timegm(x.timetuple()) for x in df["date_time_GMT"] ]
+    min_time = df["time"].min()
+    max_time = df["time"].max()
 
     if output_format == 'cf16':
-        output_filename = '{}_{}-{}.nc'.format(site_id, df["date_time_GMT"].min().strftime('%Y%m%dT%H%M%S'), df["date_time_GMT"].max().strftime('%Y%m%dT%H%M%S'))
-        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=[z])
+        times = [ calendar.timegm(x.timetuple()) for x in df['time'] ]
+        verticals = df['depth'].values
+        output_filename = '{}_{}-{}.nc'.format(site_id, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
+        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals)
 
-    for var in df.columns[1:]:
+    for var in df.columns:
+        if var in ['date_time_GMT', 'time', 'depth']:
+            continue
         try:
             int(var[0])
             variable_name = 'v_{}'.format(var)
@@ -408,32 +412,21 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
             logger.error("Variable {!s} was not found in variable map!".format(var))
             continue
 
-        full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-        values    = df[var].map(to_floats)
+        # Convert to floats
+        df[var] = df[var].map(to_floats)
         if var_meta["units"] in ["feet", "ft"]:
-            values = [ v * 0.3048 if v != fillvalue else v for v in values ]
+            df[var] = [ v * 0.3048 if v != fillvalue else v for v in df[var] ]
             var_meta["units"] = "meters"
-        else:
-            # Convert Series to Numpy array
-            values = values.values
 
         if output_format == 'axiom':
-            verticals = [ z for x in range(len(times)) ]
-            try:
-                assert len(verticals) == len(times) == len(values)
-            except AssertionError:
-                logger.error("Sizes not compatible.  Vertical: {!s}, Times: {!s}, Values: {!s}".format(len(verticals), len(times), len(values)))
-                logger.error(df)
-            data = zip(times, verticals, values)
+            full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
             output_directory = os.path.join(output, full_sensor_urn)
-            create_timeseries_file(output_directory, lat, lon, full_station_urn, full_sensor_urn, global_attributes, var_meta, sensor_vertical_datum=sensor_vertical_datum, data=data, fillvalue=fillvalue)
+            output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
+            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var)
+            ts.add_instrument_metadata(urn=full_sensor_urn)
+            ts.close()
         elif output_format == 'cf16':
-            try:
-                assert len(times) == len(values)
-            except AssertionError:
-                logger.error("Sizes not compatible.  Times: {!s}, Values: {!s}".format(len(times), len(values)))
-                logger.error(df)
-            ts.add_variable(variable_name, values=values, attributes=var_meta, fillvalue=fillvalue)
+            ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
 
     if output_format == 'cf16':
         ts.close()
