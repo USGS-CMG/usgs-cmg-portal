@@ -688,7 +688,7 @@ def main(output, download_folder, do_download, output_format, projects, csv_meta
                             # Metadata variables like pitch, roll, record count, etc.
                             ts.add_variable(other, values=values, times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         elif depth_values.size > 1:
-                            # Non Z variables in a profile datase, aka Bottom Temperature
+                            # No Z variables in a profile dataset, aka Bottom Temperature
                             ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         else:
                             ts.add_variable(other, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
