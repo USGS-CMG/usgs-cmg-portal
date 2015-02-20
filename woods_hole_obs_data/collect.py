@@ -174,7 +174,7 @@ def download(folder, project_metadata):
 
     try:
         for k, v in project_metadata.items():
-            datasets = Crawl(v['catalog_xml'], select=['.*-[A|a]+\..*'], skip=skips).datasets
+            datasets = Crawl(v['catalog_xml'], select=['.*-[A|a]{1}(?!1h)\.*.*'], skip=skips).datasets
             logger.info("Found {0} datasets in {1}!".format(len(datasets), k))
             total_datasets += datasets
         logger.info("Found {0} TOTAL datasets!".format(len(total_datasets)))
