@@ -22,15 +22,14 @@ import coloredlogs
 
 # Log to stdout
 logger = logging.getLogger()
-coloredlogs.install(level=logging.INFO)
-logger.setLevel(logging.INFO)
+coloredlogs.install(level=logging.DEBUG)
+logger.setLevel(logging.DEBUG)
 
 # Don't show the HTTP connection spam
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
 crawler_log = logging.getLogger("thredds_crawler").setLevel(logging.INFO)
 epic_log = logging.getLogger("epic2cf").setLevel(logging.INFO)
-pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.INFO)
-pytools_log = logging.getLogger("pytools").setLevel(logging.INFO)
+pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.WARNING)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
