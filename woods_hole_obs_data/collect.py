@@ -467,9 +467,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                 longitude = nc.variables.get("lon")[:]
 
             file_name = os.path.basename(down_file)
-            logger.info("Translating {0} into CF1.6 format: {1}".format(down_file, file_name))
-            file_name = os.path.basename(down_file)
             output_directory = os.path.join(output, project_name)
+            logger.info("Translating {0} into CF1.6 format: {1}".format(down_file, os.path.abspath(os.path.join(output_directory, file_name))))
 
             if not os.path.isdir(output_directory):
                 os.makedirs(output_directory)
@@ -510,7 +509,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                 # as different variable names.   Assumes sorted.
                 new_var_name = other.split('_')[0]
                 if new_var_name in ts.ncd.variables:
-                    # Already in new file.
+                    # Already in new file (processed when the first was encountered in the loop below)
                     continue
 
                 # Get the depth index
@@ -526,6 +525,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                             search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
                             depth_index = np.squeeze(np.where(depth_values == nc.variables.get(search_depth_variable[0])[:]))
                             depth_indexes.append((search_var, depth_index))
+                            logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
 
                     values = np.ma.empty((times.size, len(depth_values)))
                     values.fill_value = fillvalue
@@ -533,6 +533,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                     for nm, index in depth_indexes:
                         values[:, index] = np.squeeze(nc.variables.get(nm)[:])
 
+                    # If we just have one index we want to use the original name
                     if len(depth_indexes) == 1:
                         # Just use the original variable name
                         new_var_name = other
