@@ -436,7 +436,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
             # Create list of variables that we want to save.
             station_id   = None
-            station_name = None
             latitude     = None
             longitude    = None
 
@@ -448,13 +447,11 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
             if hasattr(nc, 'MOORING') and hasattr(nc, 'id'):
                 mooring_id = str(nc.MOORING).replace(':', '').strip()
                 station_id = "{0}_{1}".format(project_name, mooring_id[0:3]).lower()
-                station_name = "{0} ({1})".format(project_name, mooring_id[0:3])
             else:
                 try:
                     # Mooring ID is the first three numbers of the file
                     station_id = int(os.path.basename(down_file)[0:3])
                     station_id = "{0}_mooring_{0}".format(project_name, station_id)
-                    station_name = "{0} Mooring ({0})".format(project_name, station_id)
                 except BaseException:
                     logger.error("Could not create a suitable station_id. Skipping {0}.".format(down_file))
                     continue
@@ -475,8 +472,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
             file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
             file_global_attributes.update(global_attributes)
-            file_global_attributes['id']               = station_id
-            file_global_attributes['title']            = station_name
+            file_global_attributes['id'] = station_id
+            file_global_attributes['title'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
             if project_name in project_metadata:
                 for k, v in project_metadata[project_name].items():
                     if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
