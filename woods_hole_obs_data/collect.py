@@ -520,7 +520,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                     # Find other variable names like this one
                     depth_indexes = [(other, depth_index)]
                     for search_var in sorted(nc.variables):
-                        if search_var != other and search_var.split('_')[0] == new_var_name:
+                        # If they have different depth dimension names we need to combine them into one variable
+                        if search_var != other and search_var.split('_')[0] == new_var_name and \
+                           depth_variable[0] != [ x for x in nc.variables[search_var].dimensions if 'depth' in x ][0]:
                             # Found a match at a different depth
                             search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
                             depth_index = np.squeeze(np.where(depth_values == nc.variables.get(search_depth_variable[0])[:]))
