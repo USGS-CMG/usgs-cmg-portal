@@ -558,6 +558,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                     for k, v in variable_attributes.iteritems():
                         if k != '_FillValue':
                             setattr(meta_var, k, v)
+                    meta_var[:] = old_var[:]
                 else:
                     values = old_var[:]
                     if len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
