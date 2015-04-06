@@ -33,6 +33,12 @@ pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.WARNING)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
+# Special case EPIC mapping for generic EPIC codes that are used
+# EG '20' can be  Air Temperature or Water Temperature.
+special_map = {
+    20   : lambda y: epic2cf.mapping.get(32) if y.sensor_depth > 0 else epic2cf.mapping.get(21)
+}
+
 variable_name_overrides = {
     'w_1204min' : dict(epic_code=1204, overrides=dict(cell_methods='time: minimum')),
     'u_1205min' : dict(epic_code=1205, overrides=dict(cell_methods='time: minimum')),
@@ -251,7 +257,7 @@ def normalize_epic_codes(netcdf_file):
                         setattr(nc_var, k, d)
 
             if hasattr(nc_var, 'long_name'):
-                if not hasattr(nc_var, 'epic_code') or hasattr(nc_var, 'epic_code') and nc_var.epic_code in IGNORABLE_CODES:
+                if not hasattr(nc_var, 'epic_code') or (hasattr(nc_var, 'epic_code') and nc_var.epic_code in IGNORABLE_CODES):
                     lookup_long_name = nc_var.long_name.lower().strip()
                     if lookup_long_name in long_name_overrides:
                         ec = long_name_overrides.get(lookup_long_name).get('epic_code', None)
@@ -270,7 +276,13 @@ def normalize_epic_codes(netcdf_file):
                 except ValueError:
                     logger.debug("No EPIC code specified on {0}".format(v))
                 else:
-                    attribs = epic2cf.mapping.get(int(nc_var.epic_code))
+
+                    # Specialized cases for generic EPIC codes
+                    if nc_var.epic_code in special_map:
+                        attribs = special_map.get(int(nc_var.epic_code))(nc_var)
+                    else:
+                        attribs = epic2cf.mapping.get(int(nc_var.epic_code))
+
                     if attribs is not None and attribs.standard_name is not None:
                         # Convert data to CF units
                         nc_var[:] = attribs.convert(nc_var[:])
