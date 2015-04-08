@@ -1,9 +1,9 @@
 dataset:
-    id: "COAWST-USEAST-v4"
+    id: "USGS_COAWST_MVCO_CBLAST_Ripples_SWAN_40m"
 
-    title: "COAWST Forecast System : USGS : US East Coast and Gulf of Mexico (Experimental)"
+    title: "USGS-CMG-COAWST Model: CBLAST2007 Ripples with SWAN-40m res"
 
-    summary: "Coastal erosion is a pervasive societal problem for much of the world's shoreline. The ability to understand and predict coastal change is critical to mitigating its associated hazards. Two fundamental aspects of the USGS mission are to provide reliable scientific information to describe and understand the Earth and to minimize loss of life and property from natural disasters. The goal of the Carolina Coastal Change Processes (CCCP) Project is to investigate"
+    summary: "Simulation of hydrodynamics and bottom stress south of Marthas Vineyard, MA using the COAWST modeling system.  These results are from the 40m inner nest of a four-level nested simulation."
     
     creator:
         email: nganju@usgs.gov
@@ -44,6 +44,8 @@ variables:
 aggregation:
     time_var: ocean_time
     pattern: .*/ocean_his_[0-9]{4}\.nc$
+
+
 
 distribution: 
     -- CMG_Portal
