@@ -1,0 +1,51 @@
+dataset:
+    id: "COAWST-USEAST-v4"
+
+    title: "COAWST Forecast System : USGS : US East Coast and Gulf of Mexico (Experimental)"
+
+    summary: "Coastal erosion is a pervasive societal problem for much of the world's shoreline. The ability to understand and predict coastal change is critical to mitigating its associated hazards. Two fundamental aspects of the USGS mission are to provide reliable scientific information to describe and understand the Earth and to minimize loss of life and property from natural disasters. The goal of the Carolina Coastal Change Processes (CCCP) Project is to investigate"
+    
+    creator:
+        email: nganju@usgs.gov
+        name: Neil Ganju
+        url: http://water.usgs.gov/fluxes
+
+    publisher:
+        email: tkalra@usgs.gov
+        name: Tarandeep Kalra
+        url: http://www.usgs.gov
+        
+    contributor:
+        role: advisor
+        email: rsignell@usgs.gov
+        name: Rich Signell
+        url: http://profile.usgs.gov/rsignell
+        
+    license: "The data may be used and redistributed for free but is not intended for legal use, since it may contain inaccuracies. Neither the data Contributor, nor the United States Government, nor any of their employees or contractors, makes any warranty, express or implied, including warranties of merchantability and fitness for a particular purpose, or assumes any legal liability for the accuracy, completeness, or usefulness, of this information."
+    
+    references: 
+    -- http://www.whoi.edu/science/AOPE/dept/CBLASTmain.html
+    -- http://water.usgs.gov/fluxes/mvco.html
+    -- doi:10.1029/2011JC007035
+
+    acknowledgements:
+        - USGS-CMGP
+        - NSF    
+
+variables: 
+    include: 
+        - temp
+        - salt
+ 
+    exclude: 
+        - ubar
+        - vbar
+
+aggregation:
+    time_var: ocean_time
+    pattern: .*/ocean_his_[0-9]{4}\.nc$
+
+distribution: 
+    -- CMG_Portal
+    -- Sandy_Portal
+
