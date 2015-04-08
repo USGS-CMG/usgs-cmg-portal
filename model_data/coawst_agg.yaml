@@ -20,13 +20,14 @@ dataset:
         email: rsignell@usgs.gov
         name: Rich Signell
         url: http://profile.usgs.gov/rsignell
+
         
     license: "The data may be used and redistributed for free but is not intended for legal use, since it may contain inaccuracies. Neither the data Contributor, nor the United States Government, nor any of their employees or contractors, makes any warranty, express or implied, including warranties of merchantability and fitness for a particular purpose, or assumes any legal liability for the accuracy, completeness, or usefulness, of this information."
     
     references: 
-    -- http://www.whoi.edu/science/AOPE/dept/CBLASTmain.html
-    -- http://water.usgs.gov/fluxes/mvco.html
-    -- doi:10.1029/2011JC007035
+        - http://www.whoi.edu/science/AOPE/dept/CBLASTmain.html
+        - http://water.usgs.gov/fluxes/mvco.html
+        - doi:10.1029/2011JC007035
 
     acknowledgements:
         - USGS-CMGP
@@ -48,6 +49,6 @@ aggregation:
 
 
 distribution: 
-    -- CMG_Portal
-    -- Sandy_Portal
+    - CMG_Portal
+    - Sandy_Portal
 
