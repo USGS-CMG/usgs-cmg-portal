@@ -255,7 +255,7 @@ def normalize_epic_codes(netcdf_file):
                     if k == 'convert':
                         nc_var[:] = d(nc_var[:])
                     elif k != 'original_units':
-                        setattr(nc_var, k, d)
+                        nc_var.setncattr(k, d)
 
             if hasattr(nc_var, 'long_name'):
                 if not hasattr(nc_var, 'epic_code') or (hasattr(nc_var, 'epic_code') and nc_var.epic_code in IGNORABLE_CODES):
@@ -269,7 +269,7 @@ def normalize_epic_codes(netcdf_file):
                             if k == 'convert':
                                 nc_var[:] = d(nc_var[:])
                             elif k != 'original_units':
-                                setattr(nc_var, k, d)
+                                nc_var.setncattr(k, d)
 
             if hasattr(nc_var, "epic_code") and nc_var.epic_code:
                 try:
@@ -558,7 +558,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                     meta_var = ts.ncd.createVariable(other, old_var.dtype, ('z',), fill_value=fillvalue)
                     for k, v in variable_attributes.iteritems():
                         if k != '_FillValue':
-                            setattr(meta_var, k, v)
+                            meta_var.setncattr(k, v)
                     meta_var[:] = old_var[:]
                 else:
                     values = old_var[:]

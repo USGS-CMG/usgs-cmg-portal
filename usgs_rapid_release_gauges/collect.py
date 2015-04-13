@@ -11,10 +11,6 @@ import pytz
 import requests
 from bs4 import BeautifulSoup
 
-try:
-    from pytools.netcdf.sensors.create import create_timeseries_file
-except ImportError:
-    pass
 from pyaxiom.netcdf.sensors import TimeSeries
 
 from dateutil.parser import parse
