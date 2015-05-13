@@ -523,6 +523,16 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
                 old_var = nc.variables.get(other)
                 variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
+                # Remove/rename some attributes
+                # https://github.com/USGS-CMG/usgs-cmg-portal/issues/67
+                if 'valid_range' in variable_attributes:
+                    del variable_attributes['valid_range']
+                if 'minimum' in variable_attributes:
+                    variable_attributes['actual_min'] = variable_attributes['minimum']
+                    del variable_attributes['minimum']
+                if 'maximum' in variable_attributes:
+                    variable_attributes['actual_max'] = variable_attributes['maximum']
+                    del variable_attributes['maximum']
 
                 fillvalue = None
                 if hasattr(old_var, "_FillValue"):
