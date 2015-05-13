@@ -284,6 +284,11 @@ def normalize_epic_codes(netcdf_file):
                     else:
                         attribs = epic2cf.mapping.get(int(nc_var.epic_code))
 
+                    # Special case for 'Onset weather stations'.
+                    # https://github.com/USGS-CMG/usgs-cmg-portal/issues/69
+                    if int(nc_var.epic_code) in [905, 908] and 'hml' in netcdf_file.lower():
+                        attribs.standard_name = 'surface_downwelling_photosynthetic_radiative_flux_in_air'
+
                     if attribs is not None and attribs.standard_name is not None:
                         # Convert data to CF units
                         nc_var[:] = attribs.convert(nc_var[:])
