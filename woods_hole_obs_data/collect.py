@@ -141,7 +141,7 @@ global_attributes = {
     'institution':              'USGS Woods Hole Coastal and Marine Science Center',
     'project':                  'Coastal and Marine Geology Program',
     'keywords':                 'Oceans > Ocean Pressure > Water Pressure, Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Salinity',
-    'keywords_vocabulary':      'CMD Science Keywords',
+    'keywords_vocabulary':      'GCMD Science Keywords',
     'standard_name_vocabulary': 'CF-1.6',
     'creator_email':            'rsignell@usgs.gov',
     'creator_name':             'Rich Signell',
