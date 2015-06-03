@@ -141,7 +141,7 @@ global_attributes = {
     'institution':              'USGS Woods Hole Coastal and Marine Science Center',
     'project':                  'Coastal and Marine Geology Program',
     'keywords':                 'Oceans > Ocean Pressure > Water Pressure, Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Salinity',
-    'keywords_vocabulary':      'CMD Science Keywords',
+    'keywords_vocabulary':      'GCMD Science Keywords',
     'standard_name_vocabulary': 'CF-1.6',
     'creator_email':            'rsignell@usgs.gov',
     'creator_name':             'Rich Signell',
@@ -283,6 +283,11 @@ def normalize_epic_codes(netcdf_file):
                         attribs = special_map.get(int(nc_var.epic_code))(nc_var)
                     else:
                         attribs = epic2cf.mapping.get(int(nc_var.epic_code))
+
+                    # Special case for 'Onset weather stations'.
+                    # https://github.com/USGS-CMG/usgs-cmg-portal/issues/69
+                    if int(nc_var.epic_code) in [905, 908] and 'hml' in netcdf_file.lower():
+                        attribs.standard_name = 'surface_downwelling_photosynthetic_radiative_flux_in_air'
 
                     if attribs is not None and attribs.standard_name is not None:
                         # Convert data to CF units
@@ -501,7 +506,15 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
             depth_variables = sorted(list(set(depth_variables)))
             depth_values = np.asarray([ nc.variables.get(x)[:] for x in depth_variables ]).flatten()
 
-            ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name)
+            # Convert everything to positive up
+            depth_conversion = 1.0
+            if depth_variables:
+                pull_positive = nc.variables.get(depth_variables[0])
+                if pull_positive and hasattr(pull_positive, 'positive') and pull_positive.positive.lower() == 'down':
+                    depth_conversion = -1.0
+
+            depth_values = depth_values * depth_conversion
+            ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name, vertical_positive='up')
 
             v = []
             for other in sorted(nc.variables):  # Sorted for a reason... don't change!
@@ -510,6 +523,16 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
                 old_var = nc.variables.get(other)
                 variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
+                # Remove/rename some attributes
+                # https://github.com/USGS-CMG/usgs-cmg-portal/issues/67
+                if 'valid_range' in variable_attributes:
+                    del variable_attributes['valid_range']
+                if 'minimum' in variable_attributes:
+                    variable_attributes['actual_min'] = variable_attributes['minimum']
+                    del variable_attributes['minimum']
+                if 'maximum' in variable_attributes:
+                    variable_attributes['actual_max'] = variable_attributes['maximum']
+                    del variable_attributes['maximum']
 
                 fillvalue = None
                 if hasattr(old_var, "_FillValue"):
@@ -525,7 +548,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                 # Get the depth index
                 depth_variable = [ x for x in old_var.dimensions if 'depth' in x ]
                 if depth_variable and len(old_var.dimensions) > 1 and 'time' in old_var.dimensions:
-                    depth_index = np.squeeze(np.where(depth_values == nc.variables.get(depth_variable[0])[:]))
+                    depth_index = np.squeeze(np.where(depth_values == nc.variables.get(depth_variable[0])[:] * depth_conversion))
 
                     # Find other variable names like this one
                     depth_indexes = [(other, depth_index)]
@@ -535,7 +558,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                            depth_variable[0] != [ x for x in nc.variables[search_var].dimensions if 'depth' in x ][0]:
                             # Found a match at a different depth
                             search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
-                            depth_index = np.squeeze(np.where(depth_values == nc.variables.get(search_depth_variable[0])[:]))
+                            depth_index = np.squeeze(np.where(depth_values == nc.variables.get(search_depth_variable[0])[:] * depth_conversion))
                             depth_indexes.append((search_var, depth_index))
                             logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
 
@@ -559,6 +582,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                     for k, v in variable_attributes.iteritems():
                         if k != '_FillValue':
                             meta_var.setncattr(k, v)
+
                     meta_var[:] = old_var[:]
                 else:
                     values = old_var[:]
@@ -567,7 +591,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                         ts.add_variable(other, values=values, times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                     elif depth_values.size > 1:
                         # No Z variables in a profile dataset, aka Bottom Temperature
-                        ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                        ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                     else:
                         ts.add_variable(other, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
 
