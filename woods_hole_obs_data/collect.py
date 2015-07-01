@@ -580,8 +580,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
                     # Create this one, should be the first we encounter for this type
                     ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
+                    # A single time dimensioned variable, like pitch, roll, record count, etc.
+                    ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 elif depth_variable and 'time' not in old_var.dimensions:
-                    # elif (depth_variable and len(old_var.dimensions) == 1 and 'depth' == old_var.dimensions[0]) or \
                     # Metadata variable like bin distance
                     meta_var = ts.ncd.createVariable(other, old_var.dtype, ('z',), fill_value=fillvalue)
                     for k, v in variable_attributes.iteritems():
@@ -589,16 +591,20 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             meta_var.setncattr(k, v)
 
                     meta_var[:] = old_var[:]
+                elif depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions:
+                    # There is a single depth_value for most variables, but this one does not have a depth dimension
+                    # Instead, it has a sensor_depth attribute that defines the Z index.  These need to be put into
+                    # a different file to remain CF compliant.
+                    new_file_name = file_name.replace('.nc', '_{}.nc'.format(other))
+                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
+                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                    new_ts.close()
+                elif depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions:
+                    # An ADCP or profiling dataset, but this variable is measued at a single depth.
+                    # Example: Bottom Temperature on an ADCP
+                    ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 else:
-                    values = old_var[:]
-                    if len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
-                        # Metadata variables like pitch, roll, record count, etc.
-                        ts.add_variable(other, values=values, times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                    elif depth_values.size > 1:
-                        # No Z variables in a profile dataset, aka Bottom Temperature
-                        ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                    else:
-                        ts.add_variable(other, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                    ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
 
                 ts.ncd.sync()
             ts.ncd.close()
