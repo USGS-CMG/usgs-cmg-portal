@@ -172,7 +172,7 @@ def nc_close(nc):
             pass
 
 
-def download(folder, project_metadata):
+def download(folder, project_metadata, filesubset):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
     total_datasets = []
@@ -197,6 +197,10 @@ def download(folder, project_metadata):
     # Save datasets to download directory
     saved_files = []
     for num, d in enumerate(total_datasets):
+
+        if filesubset and d.name.lower() not in filesubset:
+            continue
+
         try:
             http_url = next(s["url"] for s in d.services if s["service"].lower() == "httpserver")
         except StopIteration:
@@ -398,8 +402,7 @@ def normalize_time(netcdf_file):
         nc_close(nc)
 
 
-def main(output, download_folder, do_download, projects, csv_metadata_file):
-
+def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None):
     project_metadata = dict()
     with open(csv_metadata_file, 'r') as f:
         reader = csv.DictReader(f)
@@ -414,8 +417,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
     if do_download:
         try:
-            downloaded_files = download(download_folder, project_metadata)
+            downloaded_files = download(download_folder, project_metadata, filesubset)
         except KeyboardInterrupt:
+            logger.exception('Error downloading datasets from THREDDS')
             downloaded_files = []
     else:
         downloaded_files = glob(os.path.join(download_folder, "*"))
@@ -429,9 +433,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
     for down_file in downloaded_files:
 
-        # For debugging
-        #if os.path.basename(down_file) != "8451met-a.nc":
-        #    continue
+        if filesubset is not None:
+            if os.path.basename(down_file).lower() not in filesubset:
+                # aka "9631ecp-a.nc"
+                continue
 
         nc = None
         try:
@@ -575,8 +580,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
                     # Create this one, should be the first we encounter for this type
                     ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
+                    # A single time dimensioned variable, like pitch, roll, record count, etc.
+                    ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 elif depth_variable and 'time' not in old_var.dimensions:
-                    # elif (depth_variable and len(old_var.dimensions) == 1 and 'depth' == old_var.dimensions[0]) or \
                     # Metadata variable like bin distance
                     meta_var = ts.ncd.createVariable(other, old_var.dtype, ('z',), fill_value=fillvalue)
                     for k, v in variable_attributes.iteritems():
@@ -584,16 +591,20 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
                             meta_var.setncattr(k, v)
 
                     meta_var[:] = old_var[:]
+                elif depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions:
+                    # There is a single depth_value for most variables, but this one does not have a depth dimension
+                    # Instead, it has a sensor_depth attribute that defines the Z index.  These need to be put into
+                    # a different file to remain CF compliant.
+                    new_file_name = file_name.replace('.nc', '_{}.nc'.format(other))
+                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
+                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                    new_ts.close()
+                elif depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions:
+                    # An ADCP or profiling dataset, but this variable is measued at a single depth.
+                    # Example: Bottom Temperature on an ADCP
+                    ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 else:
-                    values = old_var[:]
-                    if len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
-                        # Metadata variables like pitch, roll, record count, etc.
-                        ts.add_variable(other, values=values, times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                    elif depth_values.size > 1:
-                        # No Z variables in a profile dataset, aka Bottom Temperature
-                        ts.add_variable(other, values=values, times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                    else:
-                        ts.add_variable(other, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                    ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
 
                 ts.ncd.sync()
             ts.ncd.close()
@@ -629,6 +640,9 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--projects',
                         help="Specific projects to process (optional).",
                         nargs='*')
+    parser.add_argument('-l', '--files',
+                        help="Specific files to process (optional).",
+                        nargs='*')
     parser.add_argument('-c', '--csv_metadata_file',
                         help="CSV file to load metadata about each project from.  Defaults to 'project_metadata.csv'.",
                         default='project_metadata.csv',
@@ -638,4 +652,8 @@ if __name__ == "__main__":
     projects = args.projects
     if projects:
         projects = map(lambda x: x.lower(), args.projects)
-    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file))
+
+    files = args.files
+    if files:
+        files = map(lambda x: x.lower(), args.files)
+    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file), files)
