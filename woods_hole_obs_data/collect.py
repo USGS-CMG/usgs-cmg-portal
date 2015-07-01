@@ -172,7 +172,7 @@ def nc_close(nc):
             pass
 
 
-def download(folder, project_metadata):
+def download(folder, project_metadata, filesubset):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
     total_datasets = []
@@ -197,6 +197,10 @@ def download(folder, project_metadata):
     # Save datasets to download directory
     saved_files = []
     for num, d in enumerate(total_datasets):
+
+        if filesubset and d.name.lower() not in filesubset:
+            continue
+
         try:
             http_url = next(s["url"] for s in d.services if s["service"].lower() == "httpserver")
         except StopIteration:
@@ -398,8 +402,7 @@ def normalize_time(netcdf_file):
         nc_close(nc)
 
 
-def main(output, download_folder, do_download, projects, csv_metadata_file):
-
+def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None):
     project_metadata = dict()
     with open(csv_metadata_file, 'r') as f:
         reader = csv.DictReader(f)
@@ -414,8 +417,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
     if do_download:
         try:
-            downloaded_files = download(download_folder, project_metadata)
+            downloaded_files = download(download_folder, project_metadata, filesubset)
         except KeyboardInterrupt:
+            logger.exception('Error downloading datasets from THREDDS')
             downloaded_files = []
     else:
         downloaded_files = glob(os.path.join(download_folder, "*"))
@@ -429,9 +433,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file):
 
     for down_file in downloaded_files:
 
-        # For debugging
-        #if os.path.basename(down_file) != "8451met-a.nc":
-        #    continue
+        if filesubset is not None:
+            if os.path.basename(down_file).lower() not in filesubset:
+                # aka "9631ecp-a.nc"
+                continue
 
         nc = None
         try:
@@ -629,6 +634,9 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--projects',
                         help="Specific projects to process (optional).",
                         nargs='*')
+    parser.add_argument('-l', '--files',
+                        help="Specific files to process (optional).",
+                        nargs='*')
     parser.add_argument('-c', '--csv_metadata_file',
                         help="CSV file to load metadata about each project from.  Defaults to 'project_metadata.csv'.",
                         default='project_metadata.csv',
@@ -638,4 +646,8 @@ if __name__ == "__main__":
     projects = args.projects
     if projects:
         projects = map(lambda x: x.lower(), args.projects)
-    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file))
+
+    files = args.files
+    if files:
+        files = map(lambda x: x.lower(), args.files)
+    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file), files)
