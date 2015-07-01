@@ -34,7 +34,8 @@ project_name,contributor_name,project_title,project_summary,catalog_xml
 ```bash
 $ python collect.py --help
 usage: collect.py [-h] -o [OUTPUT] [-d] [-f FOLDER]
-                  [-p [PROJECTS [PROJECTS ...]]] [-c [CSV_METADATA_FILE]]
+                  [-p [PROJECTS [PROJECTS ...]]] [-l [FILES [FILES ...]]]
+                  [-c [CSV_METADATA_FILE]]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -54,6 +55,8 @@ optional arguments:
                         translate into NetCDF files.
   -p [PROJECTS [PROJECTS ...]], --projects [PROJECTS [PROJECTS ...]]
                         Specific projects to process (optional).
+  -l [FILES [FILES ...]], --files [FILES [FILES ...]]
+                        Specific files to process (optional).
   -c [CSV_METADATA_FILE], --csv_metadata_file [CSV_METADATA_FILE]
                         CSV file to load metadata about each project from.
                         Defaults to 'project_metadata.csv'.
@@ -73,6 +76,14 @@ python collect.py --download \
 ```bash
 python collect.py --download \
                   --projects SOUTHERN_CAL DIAMONDSHOALS MYRTLEBEACH \
+                  --output=./output/
+```
+
+##### Download and create NetCDF files for a single file
+```bash
+python collect.py --download \
+                  --projects EUROSTRATAFORM \
+                  --files "7031adc-a.nc" \
                   --output=./output/
 ```
 
