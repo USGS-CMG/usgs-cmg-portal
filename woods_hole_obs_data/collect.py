@@ -5,6 +5,7 @@ import os
 import csv
 import shutil
 import logging
+import tempfile
 import requests
 import argparse
 from glob import glob
@@ -424,33 +425,27 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
     else:
         downloaded_files = glob(os.path.join(download_folder, "*"))
 
-    temp_folder = os.path.abspath(os.path.join(".", "temp"))
-    shutil.rmtree(temp_folder, ignore_errors=True)
-    try:
-        os.makedirs(temp_folder)
-    except OSError:
-        pass  # Exists
-
     for down_file in downloaded_files:
 
         if filesubset is not None:
             if os.path.basename(down_file).lower() not in filesubset:
                 # aka "9631ecp-a.nc"
+                # Skip this file!
                 continue
+
+        if projects:
+            tmpnc = netCDF4.Dataset(down_file)
+            project_name, _ = tmpnc.id.split("/")
+            nc_close(tmpnc)
+            if project_name.lower() not in projects:
+                # Skip this project!
+                continue
+
+        _, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
+        shutil.copy(down_file, temp_file)
 
         nc = None
         try:
-            temp_file = os.path.join(temp_folder, os.path.basename(down_file))
-            shutil.copy(down_file, temp_file)
-
-            if projects:
-                tmpnc = netCDF4.Dataset(temp_file)
-                project_name, _ = tmpnc.id.split("/")
-                nc_close(tmpnc)
-                if project_name.lower() not in projects:
-                    # Skip this project!
-                    continue
-
             # Cleanup to CF-1.6
             normalize_time(temp_file)
             normalize_epic_codes(temp_file)
@@ -614,9 +609,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             continue
         finally:
             nc_close(nc)
-            os.remove(temp_file)
-
-    shutil.rmtree(temp_folder, ignore_errors=True)
+            if os.path.isfile(temp_file):
+                os.remove(temp_file)
 
 
 if __name__ == "__main__":
