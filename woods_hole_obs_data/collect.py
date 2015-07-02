@@ -595,9 +595,12 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                     new_ts.close()
                 elif depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions:
-                    # An ADCP or profiling dataset, but this variable is measued at a single depth.
-                    # Example: Bottom Temperature on an ADCP
-                    ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                    if hasattr(old_var, 'sensor_depth'):
+                        # An ADCP or profiling dataset, but this variable is measued at a single depth.
+                        # Example: Bottom Temperature on an ADCP
+                        ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                    else:
+                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 else:
                     ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
 
