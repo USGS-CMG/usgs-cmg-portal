@@ -15,17 +15,22 @@ $ pip install -r requirements.txt
 
 The script uses a CSV metadata file to get information about each project. There is a CSV file called `project_metadata.csv` that is included with the project.  The `project_name` and `catalog_xml` columns are **REQUIRED**.  Any other column names are added as global attributes to each file produced from the specifed `catalog_xml` link.
 
+##### Ignoring Rows
+
+You can prefix a row in the CSV file with the `#` character to ignore the row when processing.
+
 ##### Example
 
-Below, the global attributes `contributer_name`, `project_title`, and `project_summary` are added to the resulting NetCDF files.
+Below, the global attributes `contributer_name`, `project_title`, and `project_summary` are added to the resulting NetCDF files and the `BARNEGAT` project is ignored.
 
 ```csv
 project_name,contributor_name,project_title,project_summary,catalog_xml
 "ARGO_MERCHANT","B. Butman","Argo Merchant Experiment","A moored array deployed after the ARGO MERCHANT ran aground onNantucket Shoals designed to help understand the fate of the spilled oil.","http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/ARGO_MERCHANT/catalog.xml"
-"BARNEGAT","N. Ganju","Light attenuation and sediment resuspension in Barnegat Bay New Jersey"," Light attenuation is a critical parameter governing the ecological function of shallow estuaries.  Near-bottom and mid-water observations of currents, pressure, chlorophyll, and fDOM were collected at three pairs of sites sequentially at different locations in the estuary to characterize the conditions.","http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BARNEGAT/catalog.xml"
+#"BARNEGAT","N. Ganju","Light attenuation and sediment resuspension in Barnegat Bay New Jersey"," Light attenuation is a critical parameter governing the ecological function of shallow estuaries.  Near-bottom and mid-water observations of currents, pressure, chlorophyll, and fDOM were collected at three pairs of sites sequentially at different locations in the estuary to characterize the conditions.","http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BARNEGAT/catalog.xml"
 "BUZZ_BAY","B. Butman","Currents and Sediment Transport in Buzzards Bay","Investigation of the near-bottom circulation in Buzzards Bay and consequent transport of fine-grained sediments that may be contaminated with PCBs from inner New Bedford Harbor.","http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/Data/BUZZ_BAY/catalog.xml"
 ...
 ```
+
 
 
 ### Running

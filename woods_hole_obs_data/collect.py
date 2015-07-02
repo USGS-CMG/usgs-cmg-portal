@@ -409,6 +409,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
         reader = csv.DictReader(f)
         for row in reader:
             project_name = row['project_name']
+            if isinstance(project_name, basestring) and project_name[0] == '#':
+                continue
             if projects and project_name.lower() not in projects:
                 # Skip projects if a subset was defined
                 continue
