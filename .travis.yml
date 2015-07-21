@@ -30,7 +30,7 @@ install:
   # Customise the testing environment
   # ---------------------------------
   # woods_hole_obs_data
-  - conda install --channel ioos numpy netCDF4 thredds_crawler requests "epic2cf>=0.0.3" "pyaxiom>=0.0.10"
+  - conda install --channel ioos numpy netCDF4 thredds_crawler requests "epic2cf>=0.0.4" "pyaxiom>=0.0.12"
   - pip install coloredlogs
 
   # usgs_rapid_release_gauges
