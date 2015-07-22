@@ -40,6 +40,10 @@ class ConverterTests(unittest.TestCase):
         output_file = self.download_and_process(project, ncfile)
 
         with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 288
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables        # ADCP variable
             assert 'latitude' in nc.variables
             assert 'longitude' in nc.variables
@@ -48,9 +52,31 @@ class ConverterTests(unittest.TestCase):
             assert np.isclose(nc.variables['longitude'][:], -70.88355)
             assert np.isclose(nc.variables['latitude'][:], 41.558887)
             # Make sure it was converted to positive "up" (from "down")
-            assert nc.variables['z'][:] == -9.0
+            assert np.isclose(nc.variables['z'][:], -9.0)
 
             assert 'z' not in nc.variables['u_1205'].dimensions
+
+    def test_timeseries_4_digit_mooring(self):
+        project = 'FI14'
+        ncfile = '10002sc-a.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 1000
+            assert nc.id == os.path.splitext(ncfile)[0]
+            assert 'T_28' in nc.variables
+            assert 'latitude' in nc.variables
+            assert 'longitude' in nc.variables
+            assert 'z' in nc.variables
+
+            assert np.isclose(nc.variables['longitude'][:], -73.14838)
+            assert np.isclose(nc.variables['latitude'][:], 40.636913)
+            # Make sure it was converted to positive "up" (from "down")
+            assert np.isclose(nc.variables['z'][:], -9.81)
+
+            assert 'z' not in nc.variables['T_28'].dimensions
 
     def test_timeseries_profile(self):
         project = 'EUROSTRATAFORM'
@@ -58,6 +84,10 @@ class ConverterTests(unittest.TestCase):
         output_file = self.download_and_process(project, ncfile)
 
         with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 703
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables
             assert 'latitude' in nc.variables
             assert 'longitude' in nc.variables
@@ -83,6 +113,10 @@ class ConverterTests(unittest.TestCase):
         output_file = self.download_and_process(project, ncfile)
 
         with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 703
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables        # ADCP variable
             assert 'latitude' in nc.variables
             assert 'longitude' in nc.variables
@@ -107,6 +141,10 @@ class ConverterTests(unittest.TestCase):
         output_file = self.download_and_process(project, ncfile)
 
         with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 395
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'temp' in nc.variables
             assert 'cond' in nc.variables
             assert 'salinity' in nc.variables
@@ -142,6 +180,10 @@ class ConverterTests(unittest.TestCase):
         assert os.path.isfile(sed_file)
 
         with nc4.Dataset(nep_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 920
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'NEP2_56' in nc.variables
             assert 'z' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
@@ -150,6 +192,10 @@ class ConverterTests(unittest.TestCase):
             assert 'z' not in nc.variables['NEP2_56'].dimensions
 
         with nc4.Dataset(sed_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 920
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'Sed2_981' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
             assert nc.variables['z'].positive == 'up'
@@ -158,6 +204,10 @@ class ConverterTests(unittest.TestCase):
             assert 'z' not in nc.variables['Sed2_981'].dimensions
 
         with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 920
+            assert nc.id == os.path.splitext(ncfile)[0]
             assert 'w_1204min' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
             assert nc.variables['z'].positive == 'up'
