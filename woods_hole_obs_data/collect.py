@@ -395,9 +395,10 @@ def normalize_time(netcdf_file):
         time.long_name      = "time of measurement"
         time.calendar       = "gregorian"
         time[:] = netCDF4.date2num(time_data, units=epoch_units).round()
+        return time_data[0]
     except TypeError:
         raise TypeError("The TIME variable can not be converted.  Number of timesteps in original file: {!s}".format(nc.variables.get('time').size))
-    except BaseException:
+    except (BaseException, KeyError):
         raise
     finally:
         nc_close(nc)
@@ -449,32 +450,37 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
         nc = None
         try:
             # Cleanup to CF-1.6
-            normalize_time(temp_file)
+            first_time = normalize_time(temp_file)
             normalize_epic_codes(temp_file)
             normalize_vectors(temp_file)
             normalize_units(temp_file)
 
             # Create list of variables that we want to save.
-            station_id   = None
+            mooring_id   = None
             latitude     = None
             longitude    = None
 
             nc = netCDF4.Dataset(temp_file)
 
-            # Default station_id
             project_name, _ = nc.id.split("/")
-            # Now try to come up with a better one.
-            if hasattr(nc, 'MOORING') and hasattr(nc, 'id'):
-                mooring_id = str(nc.MOORING).replace(':', '').strip()
-                station_id = "{0}_{1}".format(project_name, mooring_id[0:3]).lower()
-            else:
-                try:
-                    # Mooring ID is the first three numbers of the file
-                    station_id = int(os.path.basename(down_file)[0:3])
-                    station_id = "{0}_mooring_{0}".format(project_name, station_id)
-                except BaseException:
-                    logger.error("Could not create a suitable station_id. Skipping {0}.".format(down_file))
-                    continue
+            feature_name, _ = os.path.splitext(os.path.basename(down_file))
+
+            fname = os.path.basename(down_file)
+            try:
+                if int(fname[0]) <= 9 and int(fname[0]) >= 2:
+                    # 1.) everything with first char between 2-9 is 3-digit
+                    mooring_id = int(fname[0:3])
+                elif int(fname[0]) == 1:
+                    # 2.) if MOORING starts with 1, and data is newer than 2014, it's 4 digit, otherwise 3 digit.
+                    if first_time > datetime(2014, 1, 1, 0):
+                        # 4 digit if after Jan 1, 2014
+                        mooring_id = int(fname[0:4])
+                    else:
+                        # 3 digit if before
+                        mooring_id = int(fname[0:3])
+            except ValueError:
+                logger.exception("Could not create a suitable station_id. Skipping {0}.".format(down_file))
+                continue
 
             try:
                 latitude  = nc.variables.get("lat")[0]
@@ -492,7 +498,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
             file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
             file_global_attributes.update(global_attributes)
-            file_global_attributes['id'] = station_id
+            file_global_attributes['id'] = feature_name
             file_global_attributes['title'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
             file_global_attributes['MOORING'] = mooring_id
             file_global_attributes['original_filename'] = fname
@@ -502,8 +508,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
                         file_global_attributes[k] = v
 
-            times           = nc.variables.get('time')[:]
-            feature_name, _ = os.path.splitext(os.path.basename(down_file))
+            times  = nc.variables.get('time')[:]
+
             # Get all depth values
             depth_variables = []
             for dv in nc.variables:
