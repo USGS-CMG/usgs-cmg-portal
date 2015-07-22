@@ -181,8 +181,8 @@ def download(folder, project_metadata, filesubset):
 
     try:
         for k, v in project_metadata.items():
-            # http://regexr.com/3aosb
-            datasets = Crawl(v['catalog_xml'], select=['([0-9]+\..*|.*(-(a|A)|s-cal|tide-cal){1}(?!lp)(?!1(h|H))\.*.*)'], skip=skips).datasets
+            # http://regexr.com/3bem7
+            datasets = Crawl(v['catalog_xml'], select=['([0-9]+\..*|.*(-(a|A)|((s|d|tide)-cal)){1}(?!lp)(?!1(h|H))\.*.*)'], skip=skips).datasets
             logger.info("Found {0} datasets in {1}!".format(len(datasets), k))
             total_datasets += datasets
         logger.info("Found {0} TOTAL datasets!".format(len(total_datasets)))
