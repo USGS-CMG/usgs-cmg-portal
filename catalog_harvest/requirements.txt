@@ -1,0 +1,4 @@
+pysgrid
+pyugrid
+requests==2.7.0
+thredds-crawler==1.0.0
