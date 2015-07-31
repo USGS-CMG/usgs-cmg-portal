@@ -3,12 +3,9 @@ Created on Jul 28, 2015
 
 @author: ayan
 '''
-import os
-import urllib
 from urlparse import urlparse
 
 from lxml import etree
-from thredds_crawler.crawl import Crawl
 
 
 def construct_dataset_name_from_url(dataset_url, slice_int=-3):
