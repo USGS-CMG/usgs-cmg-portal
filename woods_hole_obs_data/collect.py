@@ -430,25 +430,26 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
     for down_file in downloaded_files:
 
-        if filesubset is not None:
-            if os.path.basename(down_file).lower() not in filesubset:
-                # aka "9631ecp-a.nc"
-                # Skip this file!
-                continue
-
-        if projects:
-            tmpnc = netCDF4.Dataset(down_file)
-            project_name, _ = tmpnc.id.split("/")
-            nc_close(tmpnc)
-            if project_name.lower() not in projects:
-                # Skip this project!
-                continue
-
-        _, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
-        shutil.copy(down_file, temp_file)
-
         nc = None
+        _, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
         try:
+
+            if filesubset is not None:
+                if os.path.basename(down_file).lower() not in filesubset:
+                    # aka "9631ecp-a.nc"
+                    # Skip this file!
+                    continue
+
+            if projects:
+                tmpnc = netCDF4.Dataset(down_file)
+                project_name, _ = tmpnc.id.split("/")
+                nc_close(tmpnc)
+                if project_name.lower() not in projects:
+                    # Skip this project!
+                    continue
+
+            shutil.copy(down_file, temp_file)
+
             # Cleanup to CF-1.6
             first_time = normalize_time(temp_file)
             normalize_epic_codes(temp_file)
@@ -621,6 +622,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 ts.ncd.sync()
             ts.ncd.close()
 
+        except KeyboardInterrupt:
+            logger.error("Breaking out of Translate loop!")
+            break
         except BaseException:
             logger.exception("Error. Skipping {0}.".format(down_file))
             continue
