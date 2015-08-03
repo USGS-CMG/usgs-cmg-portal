@@ -463,7 +463,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             nc = netCDF4.Dataset(temp_file)
 
             project_name, _ = nc.id.split("/")
-            feature_name, _ = os.path.splitext(os.path.basename(down_file))
+            feature_name, file_ext = os.path.splitext(os.path.basename(down_file))
 
             fname = os.path.basename(down_file)
             try:
@@ -604,7 +604,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     # There is a single depth_value for most variables, but this one does not have a depth dimension
                     # Instead, it has a sensor_depth attribute that defines the Z index.  These need to be put into
                     # a different file to remain CF compliant.
-                    new_file_name = file_name.replace('.nc', '_{}.nc'.format(other))
+                    new_file_name = file_name.replace(file_ext, '_{}.{}'.format(other, file_ext))
                     new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
                     new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                     new_ts.close()
