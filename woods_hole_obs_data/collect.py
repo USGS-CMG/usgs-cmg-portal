@@ -26,6 +26,12 @@ logger = logging.getLogger()
 coloredlogs.install(level=logging.DEBUG)
 logger.setLevel(logging.DEBUG)
 
+# Log to a file
+df = logging.FileHandler('errors.log', mode='w', encoding='utf-8')
+df.setLevel(logging.ERROR)
+df.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(df)
+
 # Don't show the HTTP connection spam
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
 crawler_log = logging.getLogger("thredds_crawler").setLevel(logging.INFO)
@@ -225,7 +231,7 @@ def download(folder, project_metadata, filesubset):
             logger.info("Breaking out of download loop.")
             raise
         except BaseException:
-            logger.info("Could not download... error with HTTP endpoint.  Skipping.")
+            logger.error("Could not download... error with HTTP endpoint.  Skipping.")
             continue
 
         # Try to open file, if it fails, writing failed.
@@ -627,7 +633,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             ts.ncd.close()
 
         except KeyboardInterrupt:
-            logger.error("Breaking out of Translate loop!")
+            logger.info("Breaking out of Translate loop!")
             break
         except BaseException:
             logger.exception("Error. Skipping {0}.".format(down_file))
