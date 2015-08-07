@@ -609,10 +609,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
                     # A single time dimensioned variable, like pitch, roll, record count, etc.
                     ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                elif old_var.ndim <= 3 and ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions) or
+                elif old_var.ndim <= 3 and ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables) or
                                             (depth_values.size  > 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables)):
 
-                    if 'sensor_depth' in ts.ncd.variables and np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
+                    if np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
                         ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                     else:
                         # Search through secondary files that have been created for detached variables at a certain depth and
