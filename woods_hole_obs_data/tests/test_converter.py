@@ -173,35 +173,53 @@ class ConverterTests(unittest.TestCase):
         ncfile = '9205advs-cal.nc'
         output_file = self.download_and_process(project, ncfile)
         # This should produce extra files for some variables, namely NEP2_56 and Sed2_981
-        nep_file = os.path.join(self.output, project, ncfile.replace('.nc', '_NEP2_56.nc'))
-        sed_file = os.path.join(self.output, project, ncfile.replace('.nc', '_Sed2_981.nc'))
 
-        assert os.path.isfile(nep_file)
-        assert os.path.isfile(sed_file)
+        z1_file = os.path.join(self.output, project, ncfile.replace('.nc', '_z1.nc'))
+        z2_file = os.path.join(self.output, project, ncfile.replace('.nc', '_z2.nc'))
+        z3_file = os.path.join(self.output, project, ncfile.replace('.nc', '_z3.nc'))
 
-        with nc4.Dataset(nep_file) as nc:
+        assert os.path.isfile(z1_file)
+        assert os.path.isfile(z2_file)
+        assert os.path.isfile(z3_file)
+
+        with nc4.Dataset(z1_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
             assert nc.MOORING == 920
-            assert nc.id == os.path.splitext(ncfile)[0]
-            assert 'NEP2_56' in nc.variables
+            assert nc.id == os.path.splitext(os.path.basename(z1_file))[0]
+            assert 'ATTN1_55' in nc.variables
+            assert 'tran1_4010' in nc.variables
             assert 'z' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
             assert nc.variables['z'].positive == 'up'
-            assert np.isclose(nc.variables['z'][:], -18.571000007152556)
-            assert 'z' not in nc.variables['NEP2_56'].dimensions
+            assert np.isclose(nc.variables['z'][:], -17.7310000333786)
+            assert 'z' not in nc.variables['ATTN1_55'].dimensions
 
-        with nc4.Dataset(sed_file) as nc:
+        with nc4.Dataset(z2_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
             assert nc.MOORING == 920
-            assert nc.id == os.path.splitext(ncfile)[0]
+            assert nc.id == os.path.splitext(os.path.basename(z2_file))[0]
+            assert 'NEP2_56' in nc.variables
             assert 'Sed2_981' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
             assert nc.variables['z'].positive == 'up'
-            assert np.isclose(nc.variables['z'][:], -18.571000007152556)
+            assert np.isclose(nc.variables['z'][:], -18.5710000071526)
             assert 'z' in nc.variables
-            assert 'z' not in nc.variables['Sed2_981'].dimensions
+            assert 'z' not in nc.variables['NEP2_56'].dimensions
+
+        with nc4.Dataset(z3_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 920
+            assert nc.id == os.path.splitext(os.path.basename(z3_file))[0]
+            assert 'P_4023' in nc.variables
+            assert 'SDP_850' in nc.variables
+            # Make sure it was converted to positive "up" (from "down")
+            assert nc.variables['z'].positive == 'up'
+            assert np.isclose(nc.variables['z'][:], -17.2110000524521)
+            assert 'z' in nc.variables
+            assert 'z' not in nc.variables['P_4023'].dimensions
 
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
@@ -215,3 +233,58 @@ class ConverterTests(unittest.TestCase):
             assert 'z' in nc.variables
             # Translated to m/s from cm/s
             assert np.isclose(nc.variables['w_1204min'][0], -0.06763188)
+
+    def test_split_multiple_z_psc_cal_file(self):
+        project = 'MVCO_11'
+        ncfile = '9104pcs-cal.cdf'
+        output_file = self.download_and_process(project, ncfile)
+
+        # This should produce extra files for some variables
+        z1_file = os.path.join(self.output, project, ncfile.replace('.cdf', '_z1.cdf'))
+        z2_file = os.path.join(self.output, project, ncfile.replace('.cdf', '_z2.cdf'))
+
+        assert os.path.isfile(z1_file)
+        assert os.path.isfile(z2_file)
+
+        with nc4.Dataset(z1_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 910
+            assert nc.id == os.path.splitext(os.path.basename(z1_file))[0]
+            assert 'Tx_1211' in nc.variables
+            assert 'z' in nc.variables
+            # Make sure it was converted to positive "up" (from "down")
+            assert nc.variables['z'].positive == 'up'
+            assert np.isclose(nc.variables['z'][:], -10.97)
+            assert 'z' not in nc.variables['Tx_1211'].dimensions
+
+        with nc4.Dataset(z2_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 910
+            assert nc.id == os.path.splitext(os.path.basename(z2_file))[0]
+            assert 'NEP2_56' in nc.variables
+            # Make sure it was converted to positive "up" (from "down")
+            assert nc.variables['z'].positive == 'up'
+            assert np.isclose(nc.variables['z'][:], -10.8159999847412)
+            assert 'z' in nc.variables
+            assert 'z' not in nc.variables['NEP2_56'].dimensions
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 910
+            assert nc.id == os.path.splitext(ncfile)[0]
+            assert 'u_1205' in nc.variables
+            assert 'ATTN1_55' in nc.variables
+            assert 'tran1_4010' in nc.variables
+            # Make sure it was converted to positive "up" (from "down")
+            assert nc.variables['z'].positive == 'up'
+            assert np.allclose(nc.variables['z'][:],
+                               np.asarray([-12.65049, -12.58649, -12.52249, -12.45849, -12.39449, -12.33049,
+                                           -12.26649, -12.20249, -12.13849, -12.07449, -12.01049, -11.94649,
+                                           -11.88249, -11.81849, -11.75449, -11.69049, -11.62649, -11.56249,
+                                           -11.49849, -11.43449, -11.37049, -11.30649]))
+            assert np.allclose(nc.variables['sensor_depth'][:],
+                               -9.25)
+            assert 'z' in nc.variables

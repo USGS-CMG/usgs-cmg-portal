@@ -8,6 +8,7 @@ import logging
 import tempfile
 import requests
 import argparse
+from copy import copy
 from glob import glob
 from datetime import datetime
 
@@ -539,6 +540,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name, vertical_positive='up')
 
             v = []
+            depth_files = []
             for other in sorted(nc.variables):  # Sorted for a reason... don't change!
                 if other in coord_vars:
                     continue
@@ -603,34 +605,48 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
                     # A single time dimensioned variable, like pitch, roll, record count, etc.
                     ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                elif depth_variable and 'time' not in old_var.dimensions:
-                    # Metadata variable like bin distance
-                    meta_var = ts.ncd.createVariable(other, old_var.dtype, ('z',), fill_value=fillvalue)
-                    for k, v in variable_attributes.iteritems():
-                        if k != '_FillValue':
-                            meta_var.setncattr(k, v)
+                elif old_var.ndim <= 3 and ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions) or
+                                            (depth_values.size  > 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables)):
 
-                    meta_var[:] = old_var[:]
-                elif depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions:
-                    # There is a single depth_value for most variables, but this one does not have a depth dimension
-                    # Instead, it has a sensor_depth attribute that defines the Z index.  These need to be put into
-                    # a different file to remain CF compliant.
-                    new_file_name = file_name.replace(file_ext, '_{}.{}'.format(other, file_ext))
-                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
-                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
-                    new_ts.close()
-                elif depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions:
+                    if 'sensor_depth' in ts.ncd.variables and np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
+                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                    else:
+                        # Search through secondary files that have been created for detached variables at a certain depth and
+                        # try to match this variable with one of the depths.
+                        found_df = False
+                        for dfts in depth_files:
+                            if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], old_var.sensor_depth*depth_conversion):
+                                dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                found_df = True
+                                break
+
+                        # If we couldn't match one of the existing secondary depth files, create a new one.
+                        if found_df is False:
+                            new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
+                            fga = copy(file_global_attributes)
+                            fga['id'] = os.path.splitext(new_file_name)[0]
+                            fga['title'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
+                            new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
+                            new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                            depth_files.append(new_ts)
+                elif old_var.ndim <= 3 and (depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions):
                     if hasattr(old_var, 'sensor_depth'):
                         # An ADCP or profiling dataset, but this variable is measued at a single depth.
                         # Example: Bottom Temperature on an ADCP
-                        ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                        # Skip things with a dimension over 3 (some beam variables like `brange`)
+                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                     else:
                         ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                 else:
-                    ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                    try:
+                        ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                    except ValueError:
+                        ts.add_variable_object(old_var)
 
                 ts.ncd.sync()
-            ts.ncd.close()
+            ts.close()
+            for dts in depth_files:
+                dts.close()
 
         except KeyboardInterrupt:
             logger.info("Breaking out of Translate loop!")
