@@ -168,6 +168,15 @@ class ConverterTests(unittest.TestCase):
             assert 'z' in nc.variables['trans'].dimensions
             assert 'z' in nc.variables['att'].dimensions
 
+    def test_metadata_variables(self):
+        project = 'FI14'
+        ncfile = '10021wh-a.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert 'bindist' in nc.variables
+            assert 'z' in nc.variables['bindist'].dimensions
+
     def test_split_multiple_z_dimensions(self):
         project = 'FI12'
         ncfile = '9205advs-cal.nc'

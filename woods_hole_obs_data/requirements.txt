@@ -4,4 +4,4 @@ thredds_crawler
 requests
 coloredlogs
 epic2cf>=0.0.4
-pyaxiom>=0.0.13
+pyaxiom>=1.0.1
