@@ -44,7 +44,7 @@ IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 # Special case EPIC mapping for generic EPIC codes that are used
 # EG '20' can be  Air Temperature or Water Temperature.
 special_map = {
-    20   : lambda y: epic2cf.mapping.get(32) if y.sensor_depth > 0 else epic2cf.mapping.get(21)
+    20   : lambda y: epic2cf.mapping.get(32) if hasattr(y, 'sensor_depth') and y.sensor_depth > 0 else epic2cf.mapping.get(21)
 }
 
 variable_name_overrides = {
