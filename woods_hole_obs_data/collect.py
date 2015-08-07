@@ -458,7 +458,11 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             shutil.copy(down_file, temp_file)
 
             # Cleanup to CF-1.6
-            first_time = normalize_time(temp_file)
+            try:
+                first_time = normalize_time(temp_file)
+            except ValueError:
+                logger.error("Could not find a time variable. Skipping {0}.".format(down_file))
+
             normalize_epic_codes(temp_file)
             normalize_vectors(temp_file)
             normalize_units(temp_file)
