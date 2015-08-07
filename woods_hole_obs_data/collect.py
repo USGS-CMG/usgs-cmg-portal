@@ -500,6 +500,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             except IndexError:
                 latitude  = nc.variables.get("lat")[:]
                 longitude = nc.variables.get("lon")[:]
+            except TypeError:
+                logger.error("Could not find lat/lon variables. Skipping {0}.".format(down_file))
 
             file_name = os.path.basename(down_file)
             output_directory = os.path.join(output, project_name)
