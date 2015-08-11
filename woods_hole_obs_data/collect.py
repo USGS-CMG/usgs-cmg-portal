@@ -19,6 +19,7 @@ import numpy as np
 
 from thredds_crawler.crawl import Crawl
 from pyaxiom.netcdf.sensors import TimeSeries
+from pyaxiom.netcdf.dataset import EnhancedDataset
 
 import coloredlogs
 
@@ -37,7 +38,7 @@ logger.addHandler(df)
 requests_log = logging.getLogger("requests").setLevel(logging.WARNING)
 crawler_log = logging.getLogger("thredds_crawler").setLevel(logging.INFO)
 epic_log = logging.getLogger("epic2cf").setLevel(logging.INFO)
-pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.WARNING)
+pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.ERROR)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
@@ -254,8 +255,7 @@ def download(folder, project_metadata, filesubset):
 
 
 def normalize_epic_codes(netcdf_file):
-    nc = netCDF4.Dataset(netcdf_file, 'a')
-    try:
+    with EnhancedDataset(netcdf_file, 'a') as nc:
         for v in nc.variables:
             nc_var = nc.variables.get(v)
             if v in variable_name_overrides:
@@ -312,16 +312,10 @@ def normalize_epic_codes(netcdf_file):
                             nc_var.cell_methods = attribs.cell_methods
                     else:
                         logger.debug("Could not find CF mapping for EPIC code {!s}".format(nc_var.epic_code))
-    except BaseException:
-        logger.exception("Error.")
-        raise
-    finally:
-        nc_close(nc)
 
 
 def normalize_vectors(netcdf_file):
-    nc = netCDF4.Dataset(netcdf_file, 'a')
-    try:
+    with EnhancedDataset(netcdf_file, 'a') as nc:
         east  = None
         north = None
         for v in nc.variables:
@@ -356,16 +350,9 @@ def normalize_vectors(netcdf_file):
             drc.epic_code     = 310
             drc[:] = direction
 
-    except BaseException:
-        logger.exception("Error")
-        raise
-    finally:
-        nc_close(nc)
-
 
 def normalize_units(netcdf_file):
-    nc = netCDF4.Dataset(netcdf_file, 'a')
-    try:
+    with EnhancedDataset(netcdf_file, 'a') as nc:
         for v in nc.variables:
             nc_var = nc.variables.get(v)
             if hasattr(nc_var, 'units') and nc_var.units == "K":
@@ -377,20 +364,13 @@ def normalize_units(netcdf_file):
                 nc_var[:] = (nc_var[:] + 180) % 360
                 nc_var.standard_name = 'sea_surface_wave_to_direction'
                 nc_var.long_name = "Wave Direction (to TN)"
-    except BaseException:
-        logger.exception("Error")
-        raise
-    finally:
-        nc_close(nc)
 
 
 def normalize_time(netcdf_file):
     epoch_units       = 'seconds since 1970-01-01T00:00:00Z'
     millisecond_units = 'milliseconds since 1858-11-17T00:00:00Z'
 
-    nc = None
-    try:
-        nc = netCDF4.Dataset(netcdf_file, 'a')
+    with EnhancedDataset(netcdf_file, 'a') as nc:
         # Signell said this works, any problems and we can all blame him!
         time_data = netCDF4.num2date((np.int64(nc.variables['time'][:])-2400001)*3600*24*1000 + nc.variables['time2'][:].__array__(), units=millisecond_units)
         nc.renameVariable("time", "old_time")
@@ -403,12 +383,6 @@ def normalize_time(netcdf_file):
         time.calendar       = "gregorian"
         time[:] = netCDF4.date2num(time_data, units=epoch_units).round()
         return time_data[0]
-    except TypeError:
-        raise TypeError("The TIME variable can not be converted.  Number of timesteps in original file: {!s}".format(nc.variables.get('time').size))
-    except (BaseException, KeyError):
-        raise
-    finally:
-        nc_close(nc)
 
 
 def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None):
@@ -437,7 +411,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
     for down_file in downloaded_files:
 
-        nc = None
         _, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
         try:
 
@@ -448,20 +421,22 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     continue
 
             if projects:
-                tmpnc = netCDF4.Dataset(down_file)
-                project_name, _ = tmpnc.id.split("/")
-                nc_close(tmpnc)
-                if project_name.lower() not in projects:
-                    # Skip this project!
-                    continue
-
+                with EnhancedDataset(down_file) as tmpnc:
+                    project_name, _ = tmpnc.id.split("/")
+                    if project_name.lower() not in projects:
+                        # Skip this project!
+                        continue
             shutil.copy(down_file, temp_file)
 
             # Cleanup to CF-1.6
             try:
                 first_time = normalize_time(temp_file)
-            except ValueError:
-                logger.error("Could not find a time variable. Skipping {0}.".format(down_file))
+            except (TypeError, ValueError, IndexError):
+                logger.error("Could not normalize the time variable. Skipping {0}.".format(down_file))
+                continue
+            except OverflowError:
+                logger.error("Dates out of range. Skipping {0}.".format(down_file))
+                continue
 
             normalize_epic_codes(temp_file)
             normalize_vectors(temp_file)
@@ -472,12 +447,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             latitude     = None
             longitude    = None
 
-            nc = netCDF4.Dataset(temp_file)
-
-            project_name, _ = nc.id.split("/")
-            feature_name, file_ext = os.path.splitext(os.path.basename(down_file))
-
             fname = os.path.basename(down_file)
+            feature_name, file_ext = os.path.splitext(os.path.basename(down_file))
             try:
                 if int(fname[0]) <= 9 and int(fname[0]) >= 2:
                     # 1.) everything with first char between 2-9 is 3-digit
@@ -494,166 +465,170 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 logger.exception("Could not create a suitable station_id. Skipping {0}.".format(down_file))
                 continue
 
-            try:
-                latitude  = nc.variables.get("lat")[0]
-                longitude = nc.variables.get("lon")[0]
-            except IndexError:
-                latitude  = nc.variables.get("lat")[:]
-                longitude = nc.variables.get("lon")[:]
-            except TypeError:
-                logger.error("Could not find lat/lon variables. Skipping {0}.".format(down_file))
-
             file_name = os.path.basename(down_file)
             output_directory = os.path.join(output, project_name)
             logger.info("Translating {0} into CF1.6 format: {1}".format(down_file, os.path.abspath(os.path.join(output_directory, file_name))))
 
-            if not os.path.isdir(output_directory):
-                os.makedirs(output_directory)
+            with EnhancedDataset(temp_file) as nc:
 
-            file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
-            file_global_attributes.update(global_attributes)
-            file_global_attributes['id'] = feature_name
-            file_global_attributes['title'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
-            file_global_attributes['MOORING'] = mooring_id
-            file_global_attributes['original_filename'] = fname
-            file_global_attributes['original_folder'] = project_name
-            if project_name in project_metadata:
-                for k, v in project_metadata[project_name].items():
-                    if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
-                        file_global_attributes[k] = v
+                project_name, _ = nc.id.split("/")
 
-            times  = nc.variables.get('time')[:]
+                try:
+                    latitude  = nc.variables.get("lat")[0]
+                    longitude = nc.variables.get("lon")[0]
+                except IndexError:
+                    latitude  = nc.variables.get("lat")[:]
+                    longitude = nc.variables.get("lon")[:]
+                except TypeError:
+                    logger.error("Could not find lat/lon variables. Skipping {0}.".format(down_file))
 
-            # Get all depth values
-            depth_variables = []
-            for dv in nc.variables:
-                depth_variables += [ x for x in nc.variables.get(dv).dimensions if 'depth' in x ]
-            depth_variables = sorted(list(set(depth_variables)))
-            if depth_variables:
-                depth_values = np.asarray([ nc.variables.get(x)[:] for x in depth_variables ]).flatten()
-            else:
-                logger.warning("No depth variables found in {}, skipping.".format(down_file))
-                continue
+                file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
+                file_global_attributes.update(global_attributes)
+                file_global_attributes['id'] = feature_name
+                file_global_attributes['title'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
+                file_global_attributes['MOORING'] = mooring_id
+                file_global_attributes['original_filename'] = fname
+                file_global_attributes['original_folder'] = project_name
+                if project_name in project_metadata:
+                    for k, v in project_metadata[project_name].items():
+                        if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
+                            file_global_attributes[k] = v
 
-            # Convert everything to positive up, unless it is specifically specified as "up" already
-            depth_conversion = -1.0
-            if depth_variables:
-                pull_positive = nc.variables.get(depth_variables[0])
-                if pull_positive and hasattr(pull_positive, 'positive') and pull_positive.positive.lower() == 'up':
-                    depth_conversion = 1.0
+                times  = nc.variables.get('time')[:]
 
-            depth_values = depth_values * depth_conversion
-            ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name, vertical_positive='up')
+                # Get all depth values
+                depth_variables = []
+                for dv in nc.variables:
+                    depth_variables += [ x for x in nc.variables.get(dv).dimensions if 'depth' in x ]
+                depth_variables = sorted(list(set(depth_variables)))
 
-            v = []
-            depth_files = []
-            for other in sorted(nc.variables):  # Sorted for a reason... don't change!
-                if other in coord_vars:
+                try:
+                    assert depth_variables
+                    depth_values = np.asarray([ nc.variables.get(x)[:] for x in depth_variables ]).flatten()
+                except (AssertionError, TypeError):
+                    logger.warning("No depth variables found in {}, skipping.".format(down_file))
                     continue
 
-                old_var = nc.variables.get(other)
-                variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
-                # Remove/rename some attributes
-                # https://github.com/USGS-CMG/usgs-cmg-portal/issues/67
-                if 'valid_range' in variable_attributes:
-                    del variable_attributes['valid_range']
-                if 'minimum' in variable_attributes:
-                    variable_attributes['actual_min'] = variable_attributes['minimum']
-                    del variable_attributes['minimum']
-                if 'maximum' in variable_attributes:
-                    variable_attributes['actual_max'] = variable_attributes['maximum']
-                    del variable_attributes['maximum']
-                if 'sensor_depth' in variable_attributes:
-                    # Convert to the correct positive "up" or "down"
-                    variable_attributes['sensor_depth'] = variable_attributes['sensor_depth'] * depth_conversion
+                # Convert everything to positive up, unless it is specifically specified as "up" already
+                depth_conversion = -1.0
+                if depth_variables:
+                    pull_positive = nc.variables.get(depth_variables[0])
+                    if hasattr(pull_positive, 'positive') and pull_positive.positive.lower() == 'up':
+                        depth_conversion = 1.0
+                depth_values = depth_values * depth_conversion
 
-                fillvalue = None
-                if hasattr(old_var, "_FillValue"):
-                    fillvalue = old_var._FillValue
+                if not os.path.isdir(output_directory):
+                    os.makedirs(output_directory)
+                ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name, vertical_positive='up')
 
-                # Figure out if this is a variable that is repeated at different depths
-                # as different variable names.   Assumes sorted.
-                new_var_name = other.split('_')[0]
-                if new_var_name in ts.ncd.variables:
-                    # Already in new file (processed when the first was encountered in the loop below)
-                    continue
-
-                # Get the depth index
-                depth_variable = [ x for x in old_var.dimensions if 'depth' in x ]
-                if depth_variable and len(old_var.dimensions) > 1 and 'time' in old_var.dimensions:
-                    depth_index = np.squeeze(np.where(depth_values == (nc.variables.get(depth_variable[0])[:] * depth_conversion)))
-
-                    # Find other variable names like this one
-                    depth_indexes = [(other, depth_index)]
-                    for search_var in sorted(nc.variables):
-                        # If they have different depth dimension names we need to combine them into one variable
-                        if search_var != other and search_var.split('_')[0] == new_var_name and \
-                           depth_variable[0] != [ x for x in nc.variables[search_var].dimensions if 'depth' in x ][0]:
-                            # Found a match at a different depth
-                            search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
-                            depth_index = np.squeeze(np.where(depth_values == (nc.variables.get(search_depth_variable[0])[:] * depth_conversion)))
-                            depth_indexes.append((search_var, depth_index))
-                            logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
-
-                    values = np.ma.empty((times.size, len(depth_values)))
-                    values.fill_value = fillvalue
-                    values.mask = True
-                    for nm, index in depth_indexes:
-                        values[:, index] = np.squeeze(nc.variables.get(nm)[:])
-
-                    # If we just have one index we want to use the original name
-                    if len(depth_indexes) == 1:
-                        # Just use the original variable name
-                        new_var_name = other
-
-                    # Create this one, should be the first we encounter for this type
-                    ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
-                elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
-                    # A single time dimensioned variable, like pitch, roll, record count, etc.
-                    ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                elif old_var.ndim <= 3 and ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables) or
-                                            (depth_values.size  > 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables)):
-
-                    if np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
-                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
-                    else:
-                        # Search through secondary files that have been created for detached variables at a certain depth and
-                        # try to match this variable with one of the depths.
-                        found_df = False
-                        for dfts in depth_files:
-                            if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], old_var.sensor_depth*depth_conversion):
-                                dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
-                                found_df = True
-                                break
-
-                        # If we couldn't match one of the existing secondary depth files, create a new one.
-                        if found_df is False:
-                            new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
-                            fga = copy(file_global_attributes)
-                            fga['id'] = os.path.splitext(new_file_name)[0]
-                            fga['title'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
-                            new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
-                            new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
-                            depth_files.append(new_ts)
-                elif old_var.ndim <= 3 and (depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions):
-                    if hasattr(old_var, 'sensor_depth'):
-                        # An ADCP or profiling dataset, but this variable is measued at a single depth.
-                        # Example: Bottom Temperature on an ADCP
-                        # Skip things with a dimension over 3 (some beam variables like `brange`)
-                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
-                    else:
-                        ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                else:
+                v = []
+                depth_files = []
+                for other in sorted(nc.variables):  # Sorted for a reason... don't change!
                     try:
-                        ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
-                    except ValueError:
-                        ts.add_variable_object(old_var, dimension_map=dict(depth='z'))
+                        if other in coord_vars:
+                            continue
 
-                ts.ncd.sync()
-            ts.close()
-            for dts in depth_files:
-                dts.close()
+                        old_var = nc.variables.get(other)
+                        variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
+                        # Remove/rename some attributes
+                        # https://github.com/USGS-CMG/usgs-cmg-portal/issues/67
+                        if 'valid_range' in variable_attributes:
+                            del variable_attributes['valid_range']
+                        if 'minimum' in variable_attributes:
+                            variable_attributes['actual_min'] = variable_attributes['minimum']
+                            del variable_attributes['minimum']
+                        if 'maximum' in variable_attributes:
+                            variable_attributes['actual_max'] = variable_attributes['maximum']
+                            del variable_attributes['maximum']
+                        if 'sensor_depth' in variable_attributes:
+                            # Convert to the correct positive "up" or "down"
+                            variable_attributes['sensor_depth'] = variable_attributes['sensor_depth'] * depth_conversion
 
+                        fillvalue = None
+                        if hasattr(old_var, "_FillValue"):
+                            fillvalue = old_var._FillValue
+
+                        # Figure out if this is a variable that is repeated at different depths
+                        # as different variable names.   Assumes sorted.
+                        new_var_name = other.split('_')[0]
+                        if new_var_name in ts.ncd.variables:
+                            # Already in new file (processed when the first was encountered in the loop below)
+                            continue
+
+                        # Get the depth index
+                        depth_variable = [ x for x in old_var.dimensions if 'depth' in x ]
+                        if depth_variable and len(old_var.dimensions) > 1 and 'time' in old_var.dimensions:
+                            depth_index = np.squeeze(np.where(depth_values == (nc.variables.get(depth_variable[0])[:] * depth_conversion)))
+
+                            # Find other variable names like this one
+                            depth_indexes = [(other, depth_index)]
+                            for search_var in sorted(nc.variables):
+                                # If they have different depth dimension names we need to combine them into one variable
+                                if search_var != other and search_var.split('_')[0] == new_var_name and \
+                                   depth_variable[0] != [ x for x in nc.variables[search_var].dimensions if 'depth' in x ][0]:
+                                    # Found a match at a different depth
+                                    search_depth_variable = [ x for x in nc.variables.get(search_var).dimensions if 'depth' in x ]
+                                    depth_index = np.squeeze(np.where(depth_values == (nc.variables.get(search_depth_variable[0])[:] * depth_conversion)))
+                                    depth_indexes.append((search_var, depth_index))
+                                    logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
+
+                            values = np.ma.empty((times.size, len(depth_values)))
+                            values.fill_value = fillvalue
+                            values.mask = True
+                            for nm, index in depth_indexes:
+                                values[:, index] = np.squeeze(nc.variables.get(nm)[:])
+
+                            # If we just have one index we want to use the original name
+                            if len(depth_indexes) == 1:
+                                # Just use the original variable name
+                                new_var_name = other
+
+                            # Create this one, should be the first we encounter for this type
+                            ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                        elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
+                            # A single time dimensioned variable, like pitch, roll, record count, etc.
+                            ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                        elif old_var.ndim <= 3 and hasattr(old_var, 'sensor_depth') and 'sensor_depth' in ts.ncd.variables and \
+                                ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions) or
+                                 (depth_values.size  > 1 and not depth_variable and 'time' in old_var.dimensions)):
+
+                            if np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
+                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                            else:
+                                # Search through secondary files that have been created for detached variables at a certain depth and
+                                # try to match this variable with one of the depths.
+                                found_df = False
+                                for dfts in depth_files:
+                                    if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], old_var.sensor_depth*depth_conversion):
+                                        dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                        found_df = True
+                                        break
+
+                                # If we couldn't match the current or one of the existing secondary depth files, create a new one.
+                                if found_df is False:
+                                    new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
+                                    fga = copy(file_global_attributes)
+                                    fga['id'] = os.path.splitext(new_file_name)[0]
+                                    fga['title'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
+                                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
+                                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                    depth_files.append(new_ts)
+                        elif old_var.ndim <= 3 and (depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions):
+                            if hasattr(old_var, 'sensor_depth'):
+                                # An ADCP or profiling dataset, but this variable is measued at a single depth.
+                                # Example: Bottom Temperature on an ADCP
+                                # Skip things with a dimension over 3 (some beam variables like `brange`)
+                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                            else:
+                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
+                        else:
+                            try:
+                                ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                            except ValueError:
+                                ts.add_variable_object(old_var, dimension_map=dict(depth='z'))
+
+                    except BaseException:
+                        logger.warning("Error processing variable {0}. Skipping it.".format(other))
         except KeyboardInterrupt:
             logger.info("Breaking out of Translate loop!")
             break
@@ -661,7 +636,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             logger.exception("Error. Skipping {0}.".format(down_file))
             continue
         finally:
-            nc_close(nc)
             if os.path.isfile(temp_file):
                 os.remove(temp_file)
 
