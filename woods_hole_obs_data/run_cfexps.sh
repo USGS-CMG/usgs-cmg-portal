@@ -5,14 +5,16 @@
 # source activate ioos
 # cd to /usgs/data2/emontgomery/stellwagen/usgs-cmg-portal/woods_hole_obs_data
 #
-#python collect.py -p ARGO_MERCHANT --folder download -o ../../CF-1.6new
+# comment out any that went with the runn all so you re-run just the ones you need to
+#
+python collect.py -p ARGO_MERCHANT --folder download -o ../../CF-1.6new
 python collect.py -p BARNEGAT --folder download -o ../../CF-1.6new
 python collect.py -p BUZZ_BAY --folder download -o ../../CF-1.6new
-#python collect.py -p BW2011 --folder download -o ../../CF-1.6new
+python collect.py -p BW2011 --folder download -o ../../CF-1.6new
 python collect.py -p CAMP --folder download -o ../../CF-1.6new
 python collect.py -p CAPE_COD_BAY --folder download -o ../../CF-1.6new
 python collect.py -p CC_MISC --folder download -o ../../CF-1.6new
-python collect.py -p CHANDELEUR --folder download -o ../../CF-1.6new
+python collect.py -p GOMEX_CI --folder download -o ../../CF-1.6new
 python collect.py -p DEEP_REEF --folder download -o ../../CF-1.6new
 python collect.py -p DIAMONDSHOALS --folder download -o ../../CF-1.6new
 python collect.py -p DWDS_106 --folder download -o ../../CF-1.6new
