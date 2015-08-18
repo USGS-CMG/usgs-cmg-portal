@@ -3,6 +3,7 @@
 
 import os
 import sys
+import shutil
 
 import unittest
 
@@ -24,6 +25,9 @@ class ConverterTests(unittest.TestCase):
         self.output = os.path.join(os.path.dirname(__file__), 'testing_output')
         self.download = os.path.join(os.path.dirname(__file__), 'testing_download')
         self.csv = os.path.join(os.path.dirname(__file__), '..', 'project_metadata.csv')
+
+    def tearDown(self):
+        shutil.rmtree(self.output)
 
     def download_and_process(self, project, ncfile):
         downloaded_file = os.path.join(self.download, ncfile)
