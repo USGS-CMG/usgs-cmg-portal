@@ -622,9 +622,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             else:
                                 ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         else:
-                            try:
+                            if 'time' in old_var.dimensions:
                                 ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
-                            except ValueError:
+                            else:
                                 ts.add_variable_object(old_var, dimension_map=dict(depth='z'))
 
                     except BaseException:

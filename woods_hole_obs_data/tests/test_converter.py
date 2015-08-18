@@ -297,3 +297,24 @@ class ConverterTests(unittest.TestCase):
             assert np.allclose(nc.variables['sensor_depth'][:],
                                -9.25)
             assert 'z' in nc.variables
+
+    def test_variable_with_extra_dimensions(self):
+        project = 'FI12'
+        ncfile = '9261awWvs-cal.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 926
+            assert nc.id == os.path.splitext(ncfile)[0]
+            assert 'direction' in nc.variables
+            assert 'direction' in nc.dimensions
+
+            assert 'frequency' in nc.variables
+            assert 'frequency' in nc.dimensions
+            assert 'burst' in nc.dimensions
+            assert 'SpecAmp' in nc.variables
+            assert 'burst' in nc.variables['SpecAmp'].dimensions
+            assert 'frequency' in nc.variables['SpecAmp'].dimensions
+
