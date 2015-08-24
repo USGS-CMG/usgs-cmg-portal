@@ -599,6 +599,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                 # try to match this variable with one of the depths.
                                 found_df = False
                                 for dfts in depth_files:
+                                    if isinstance(old_var.sensor_depth, np.ndarray):
+                                        # Well, this is a bad file.
+                                        raise ValueError("The sensor_depth attribute has more than one value, please fix the source NetCDF: {}".format(down_file))
                                     if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], old_var.sensor_depth*depth_conversion):
                                         dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                                         found_df = True
