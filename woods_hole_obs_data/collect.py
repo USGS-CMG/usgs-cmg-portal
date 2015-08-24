@@ -625,10 +625,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             else:
                                 ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         else:
-                            if 'time' in old_var.dimensions:
+                            if 'time' in old_var.dimensions and old_var.ndim <= 3:
                                 ts.add_variable(other, values=old_var[:], times=times, fillvalue=fillvalue, attributes=variable_attributes)
                             else:
-                                ts.add_variable_object(old_var, dimension_map=dict(depth='z'))
+                                ts.add_variable_object(old_var, dimension_map=dict(depth='z'), reduce_dims=True)
 
                     except BaseException:
                         logger.warning("Error processing variable {0}. Skipping it.".format(other))
