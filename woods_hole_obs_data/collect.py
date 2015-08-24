@@ -631,7 +631,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                 ts.add_variable_object(old_var, dimension_map=dict(depth='z'), reduce_dims=True)
 
                     except BaseException:
-                        logger.warning("Error processing variable {0}. Skipping it.".format(other))
+                        logger.exception("Error processing variable {0} in {1}. Skipping it.".format(other, down_file))
         except KeyboardInterrupt:
             logger.info("Breaking out of Translate loop!")
             break
