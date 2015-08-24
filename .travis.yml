@@ -41,4 +41,4 @@ install:
   - conda list --export
   - pip freeze
 
-script: py.test -s
+script: py.test -rx -v
