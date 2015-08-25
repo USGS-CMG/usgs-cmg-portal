@@ -27,10 +27,13 @@ class ConverterTests(unittest.TestCase):
         self.csv = os.path.join(os.path.dirname(__file__), '..', 'project_metadata.csv')
 
     def tearDown(self):
-        shutil.rmtree(self.output)
+        try:
+            shutil.rmtree(self.output)
+        except OSError:
+            pass
 
     def download_and_process(self, project, ncfile):
-        downloaded_file = os.path.join(self.download, ncfile)
+        downloaded_file = os.path.join(self.download, project, ncfile)
         output_file = os.path.join(self.output, project, ncfile)
         do_download = not os.path.isfile(downloaded_file)
         main(self.output, self.download, do_download, [project.lower()], self.csv, filesubset=[ncfile.lower()])

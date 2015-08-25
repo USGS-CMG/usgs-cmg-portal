@@ -168,19 +168,6 @@ global_attributes = {
 coord_vars      = ['time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'depth005', 'lat', 'lon']
 
 
-# Has depths and bottom variables: EUROSTRATAFORM, GLOBEC_GB
-# Has mutiple depth variables (depth1, depth2, depth3, etc.): MOBILE_BAY /home/kwilcox/Development/usgs_cmg_woods_hole/download/3951tct-a.cdf
-
-
-def nc_close(nc):
-    if nc is not None:
-        try:
-            nc.sync()
-            nc.close()
-        except RuntimeError:
-            pass
-
-
 def download(folder, project_metadata, filesubset):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
@@ -212,12 +199,15 @@ def download(folder, project_metadata, filesubset):
 
         try:
             http_url = next(s["url"] for s in d.services if s["service"].lower() == "httpserver")
+            project_name = http_url.split("/")[-2]
         except StopIteration:
             logger.error("No HTTPServer endpoint found, skipping")
             continue
 
         # Make download folder
-        save_file = os.path.join(folder, d.name)
+        save_file = os.path.join(folder, project_name, d.name)
+        if not os.path.isdir(os.path.dirname(save_file)):
+            os.makedirs(os.path.dirname(save_file))
         logger.info("Downloading {0}".format(http_url))
         try:
             with open(save_file, "wb") as f:
@@ -238,18 +228,15 @@ def download(folder, project_metadata, filesubset):
 
         # Try to open file, if it fails, writing failed.
         try:
-            nc = netCDF4.Dataset(save_file, 'a')
-            name, _ = os.path.splitext(d.name)
-            project_name = http_url.split("/")[-2]
-            nc.id = "{0}/{1}".format(project_name, name)
+            with EnhancedDataset(save_file, 'a') as nc:
+                name, _ = os.path.splitext(d.name)
+                nc.id = "{0}/{1}".format(project_name, name)
         except BaseException:
             os.remove(save_file)
             raise
         else:
             logger.info("{!s} saved ({!s}/{!s})".format(d.name, num + 1, len(total_datasets)))
             saved_files.append(save_file)
-        finally:
-            nc_close(nc)
 
     return saved_files
 
@@ -407,7 +394,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             logger.exception('Error downloading datasets from THREDDS')
             downloaded_files = []
     else:
-        downloaded_files = glob(os.path.join(download_folder, "*"))
+        downloaded_files = glob(os.path.join(download_folder, '**', '*'))
 
     for down_file in sorted(downloaded_files):
 
@@ -420,12 +407,11 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     # Skip this file!
                     continue
 
+            project_name = os.path.basename(os.path.dirname(down_file))
             if projects:
-                with EnhancedDataset(down_file) as tmpnc:
-                    project_name, _ = tmpnc.id.split("/")
-                    if project_name.lower() not in projects:
-                        # Skip this project!
-                        continue
+                if project_name.lower() not in projects:
+                    # Skip this project!
+                    continue
             shutil.copy(down_file, temp_file)
 
             # Cleanup to CF-1.6
@@ -470,8 +456,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             logger.info("Translating {0} into CF1.6 format: {1}".format(down_file, os.path.abspath(os.path.join(output_directory, file_name))))
 
             with EnhancedDataset(temp_file) as nc:
-
-                project_name, _ = nc.id.split("/")
 
                 try:
                     latitude  = nc.variables.get("lat")[0]
