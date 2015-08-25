@@ -575,16 +575,26 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             values = np.ma.empty((times.size, len(depth_values)))
                             values.fill_value = fillvalue
                             values.mask = True
+                            inconsistent = False
                             for nm, index in depth_indexes:
-                                values[:, index] = np.squeeze(nc.variables.get(nm)[:])
+                                try:
+                                    values[:, index] = np.squeeze(nc.variables.get(nm)[:])
+                                except ValueError:
+                                    inconsistent = True
+                                    break
 
                             # If we just have one index we want to use the original name
                             if len(depth_indexes) == 1:
                                 # Just use the original variable name
                                 new_var_name = other
 
-                            # Create this one, should be the first we encounter for this type
-                            ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+                            if inconsistent is True:
+                                # Incorrect array size, most likely a strange variable
+                                ts.add_variable_object(old_var, dimension_map=dict(depth='z'), reduce_dims=True)
+                            else:
+                                # Create this one, should be the first we encounter for this type
+                                ts.add_variable(new_var_name, values=values, times=times, fillvalue=fillvalue, attributes=variable_attributes)
+
                         elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
                             # A single time dimensioned variable, like pitch, roll, record count, etc.
                             ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
