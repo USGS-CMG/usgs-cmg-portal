@@ -20,6 +20,7 @@ import numpy as np
 from thredds_crawler.crawl import Crawl
 from pyaxiom.netcdf.sensors import TimeSeries
 from pyaxiom.netcdf.dataset import EnhancedDataset
+from pyaxiom.utils import DotDict
 
 import coloredlogs
 
@@ -45,7 +46,8 @@ IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 # Special case EPIC mapping for generic EPIC codes that are used
 # EG '20' can be  Air Temperature or Water Temperature.
 special_map = {
-    20   : lambda y: epic2cf.mapping.get(32) if hasattr(y, 'sensor_depth') and y.sensor_depth > 0 else epic2cf.mapping.get(21)
+    20   : lambda y: epic2cf.mapping.get(32) if hasattr(y, 'sensor_depth') and y.sensor_depth > 0 else epic2cf.mapping.get(21),
+    56   : lambda x: DotDict(standard_name='backscatter_intensity', long_name='Backscatter Intensity', units='v', convert=lambda x: x, cf_units='v', cell_methods=None)
 }
 
 variable_name_overrides = {
