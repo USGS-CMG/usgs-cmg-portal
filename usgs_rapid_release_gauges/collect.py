@@ -235,7 +235,7 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
         output_filename = '{}_{}-{}.nc'.format(site_id, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
         times = [ calendar.timegm(x.timetuple()) for x in df["time"] ]
         verticals = df['depth'].values
-        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals, vertical_axis_name='z')
+        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals, vertical_axis_name='height', vertical_positive='down')
 
     for var in df.columns:
         if var in ['datetime', 'time', 'depth', 'tz_cd', 'site_no', 'agency_cd']:
@@ -259,9 +259,8 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
             full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
             output_directory = os.path.join(output, full_sensor_urn)
             output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
-            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var, vertical_axis_name='height')
+            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var, vertical_axis_name='height', vertical_positive='down')
             ts.add_instrument_metadata(urn=full_sensor_urn)
-            ts.close()
         elif output_format == 'cf16':
             # Variable names shouldn't start with a number
             try:
@@ -270,9 +269,6 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
             except:
                 variable_name = var
             ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
-
-    if output_format == 'cf16':
-        ts.close()
 
 
 def parse_type_2(output_format, site_id, contents, output, csv_link):
@@ -420,12 +416,8 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
             output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
             ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var)
             ts.add_instrument_metadata(urn=full_sensor_urn)
-            ts.close()
         elif output_format == 'cf16':
             ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
-
-    if output_format == 'cf16':
-        ts.close()
 
 
 if __name__ == "__main__":
