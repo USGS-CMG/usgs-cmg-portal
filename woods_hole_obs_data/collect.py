@@ -147,8 +147,8 @@ long_name_overrides = {
 global_attributes = {
     'naming_authority':         'gov.usgs.cmgp',
     'source':                   'USGS',
-    'institution':              'USGS Woods Hole Coastal and Marine Science Center',
-    'project':                  'Coastal and Marine Geology Program',
+    'institution':              'USGS Coastal and Marine Geology Program',
+    'project':                  'U.S. Geological Survey Oceanographic Time-Series Data',
     'keywords':                 'Oceans > Ocean Pressure > Water Pressure, Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Salinity',
     'keywords_vocabulary':      'GCMD Science Keywords',
     'standard_name_vocabulary': 'CF-1.6',
