@@ -353,3 +353,14 @@ class ConverterTests(unittest.TestCase):
             assert 'time' in nc.variables['CDF'].dimensions
             assert 'CDF' in nc.variables['CDF'].dimensions
             assert 'z' not in nc.variables['CDF'].dimensions
+
+    def test_fillvalues(self):
+        project = 'BW2011'
+        ncfile = '9041ysi-a.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 904
+            assert nc.id == os.path.splitext(ncfile)[0]

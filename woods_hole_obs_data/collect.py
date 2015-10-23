@@ -329,12 +329,12 @@ def normalize_vectors(netcdf_file):
             direction = np.degrees(np.arctan2(north[:], east[:]))
 
             east_fill_value = east._FillValue if hasattr(east, '_FillValue') else np.nan
-            spd = nc.createVariable('CS_300', 'f4', east.dimensions, fill_value=east_fill_value)
+            spd = nc.createVariable('CS_300', east.dtype, east.dimensions, fill_value=east_fill_value)
             spd.standard_name = 'sea_water_speed'
             spd.epic_code     = 300
             spd[:] = speed
 
-            drc = nc.createVariable('CD_310', 'f4', east.dimensions, fill_value=east_fill_value)
+            drc = nc.createVariable('CD_310', east.dtype, east.dimensions, fill_value=east_fill_value)
             drc.standard_name = 'direction_of_sea_water_velocity'
             drc.epic_code     = 310
             drc[:] = direction
@@ -566,7 +566,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                     depth_indexes.append((search_var, depth_index))
                                     logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
 
-                            values = np.ma.empty((times.size, len(depth_values)))
+                            values = np.ma.empty((times.size, len(depth_values)), dtype=old_var.dtype)
                             values.fill_value = fillvalue
                             values.mask = True
                             inconsistent = False
