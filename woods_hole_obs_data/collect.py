@@ -167,7 +167,7 @@ global_attributes = {
     'date_created':             datetime.utcnow().strftime("%Y-%m-%dT%H:%M:00Z")
 }
 
-coord_vars      = ['time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'depth005', 'lat', 'lon']
+coord_vars      = ['feature_type_instance', 'time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'depth005', 'lat', 'lon']
 
 
 def download(folder, project_metadata, filesubset):
