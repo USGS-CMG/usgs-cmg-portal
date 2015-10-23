@@ -354,6 +354,20 @@ class ConverterTests(unittest.TestCase):
             assert 'CDF' in nc.variables['CDF'].dimensions
             assert 'z' not in nc.variables['CDF'].dimensions
 
+    def test_vector_conversion(self):
+        project = 'MBAY_LT'
+        ncfile = '4801spd-a_d1.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 480
+            assert nc.id == os.path.splitext(ncfile)[0]
+            assert nc.variables['platform'].type == 'fixed'
+            assert 'CS_300' in nc.variables
+            assert 'CD_310' in nc.variables
+
     def test_fillvalues(self):
         project = 'BW2011'
         ncfile = '9041ysi-a.nc'

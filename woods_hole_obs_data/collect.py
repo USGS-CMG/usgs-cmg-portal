@@ -323,7 +323,7 @@ def normalize_vectors(netcdf_file):
                 std_names.append(var.standard_name)
 
         # Only add the variables if they don't already exist
-        if east is not None and north is not None and 'eastward_sea_water_velocity' not in std_names and 'northward_sea_water_velocity' not in std_names:
+        if east is not None and north is not None and 'sea_water_speed' not in std_names and 'direction_of_sea_water_velocity' not in std_names:
             # We have vectors... create the speed and direction variables
             speed = np.sqrt(np.square(east[:]) + np.square(north[:]))
             direction = np.degrees(np.arctan2(north[:], east[:]))
