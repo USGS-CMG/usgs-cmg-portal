@@ -471,7 +471,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
                 file_global_attributes.update(global_attributes)
                 file_global_attributes['id'] = feature_name
-                file_global_attributes['title'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
+                file_global_attributes['title'] = os.path.basename(down_file)
+                file_global_attributes['description'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
                 file_global_attributes['MOORING'] = mooring_id
                 file_global_attributes['original_filename'] = fname
                 file_global_attributes['original_folder'] = project_name
@@ -506,6 +507,13 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 if not os.path.isdir(output_directory):
                     os.makedirs(output_directory)
                 ts = TimeSeries(output_directory, latitude, longitude, feature_name, file_global_attributes, times=times, verticals=depth_values, output_filename=file_name, vertical_positive='up')
+
+                # Set the platform type from the global attribute 'platform_type', defaulting to 'fixed'
+                with EnhancedDataset(ts.out_file, 'a') as onc:
+                    platform_type = getattr(onc, 'platform_type', 'fixed').lower()
+                    onc.variables['platform'].setncattr('type', platform_type)
+                    onc.variables['platform'].setncattr('nodc_name', "FIXED PLATFORM, MOORINGS")
+
 
                 v = []
                 depth_files = []
@@ -608,7 +616,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                     new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
                                     fga = copy(file_global_attributes)
                                     fga['id'] = os.path.splitext(new_file_name)[0]
-                                    fga['title'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
+                                    fga['title'] = '{0} - {1}'.format(os.path.basename(down_file), other)
+                                    fga['description'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
                                     new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
                                     new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
                                     depth_files.append(new_ts)
