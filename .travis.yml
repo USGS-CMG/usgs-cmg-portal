@@ -2,6 +2,7 @@ language: python
 sudo: false
 python:
   - "2.7"
+  - "3.4"
 
 before_install:
   # Install miniconda
@@ -29,15 +30,15 @@ install:
   # Customise the testing environment
   # ---------------------------------
   # woods_hole_obs_data
-  - conda install --channel ioos numpy netCDF4 thredds_crawler requests "epic2cf>=0.0.4"
-  - conda install -c ioos --channel axiom-data-science "pyaxiom>=1.0.7"
-  - pip install coloredlogs
+  - conda install -c ioos -c axiom-data-science --file woods_hole_obs_data/requirements.txt
+  - pip install -r woods_hole_obs_data/requirements-pip.txt
 
   # usgs_rapid_release_gauges
-  - conda install --channel ioos pandas pyproj beautifulsoup4
+  - conda install -c ioos -c axiom-data-science --file usgs_rapid_release_gauges/requirements.txt
+  - pip install -r usgs_rapid_release_gauges/requirements-pip.txt
 
   # testing
-  - conda install --channel ioos pytest
+  - conda install -c ioos pytest
 
   - conda list --export
   - pip freeze
