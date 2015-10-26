@@ -27,6 +27,7 @@ class ConverterTests(unittest.TestCase):
         self.csv = os.path.join(os.path.dirname(__file__), '..', 'project_metadata.csv')
 
     def tearDown(self):
+        return
         try:
             shutil.rmtree(self.output)
         except OSError:
@@ -378,3 +379,18 @@ class ConverterTests(unittest.TestCase):
             assert nc.original_filename == ncfile
             assert nc.MOORING == 904
             assert nc.id == os.path.splitext(ncfile)[0]
+
+    def test_vertical_direction(self):
+        project = 'MVCO_11'
+        ncfile = '9111aqd-a.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 911
+            assert nc.id == os.path.splitext(ncfile)[0]
+
+            # Data under water should be negative (positive "up")
+            for v in nc.variables['z'][:]:
+                assert v < 0
