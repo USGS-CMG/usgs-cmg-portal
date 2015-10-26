@@ -174,7 +174,7 @@ def download(folder, project_metadata, filesubset):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
     total_datasets = []
-    skips = Crawl.SKIPS + ['.*OTHER.*', '.*ancillary.*']
+    skips = Crawl.SKIPS + ['.*OTHER.*', '.*ancillary.*', '.*OLD_VERSIONS.*']
 
     try:
         for k, v in project_metadata.items():
