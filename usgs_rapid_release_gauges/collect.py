@@ -73,11 +73,11 @@ def split_file(c, data_key):
         if line.startswith("#") or not line:
             comments.append(line)
         elif data_key in line:
-            headers = map(lambda x: x.strip(), line.split("\t"))
+            headers = [ x.strip() for x in line.split("\t") ]
             continue
         else:
-            row = map(lambda x: x.strip(), line.split("\t"))
-            if filter(None, row):
+            row = [ x.strip() for x in line.split("\t") ]
+            if list(filter(None, row)):
                 assert len(row) == len(headers)
                 data.append(row)
 
@@ -335,15 +335,15 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
 
     for c in comments:
         if "Sensor location latitude" in c:
-            lat = float(filter(None, map(lambda x: x.strip(), c.split(" ")))[-1])
+            lat = float(list(filter(None, map(lambda x: x.strip(), c.split(" "))))[-1])
         elif "Sensor location longitude" in c:
-            lon = float(filter(None, map(lambda x: x.strip(), c.split(" ")))[-1])
+            lon = float(list(filter(None, map(lambda x: x.strip(), c.split(" "))))[-1])
         elif "Site id" in c:
-            site_id = filter(None, map(lambda x: x.strip(), c.split(" ")))[-1]
+            site_id = list(filter(None, map(lambda x: x.strip(), c.split(" "))))[-1]
             name = site_id
         elif "Sensor elevation" in c:
             sensor_vertical_datum = "".join(c.split("=")[0].split(" ")[4:6])
-            l = filter(None, map(lambda x: x.strip(), c.split(" ")))
+            l = list(filter(None, map(lambda x: x.strip(), c.split(" "))))
             z = float(l[-2])
             if l[-1] in ["feet", "ft"]:
                 z *= 0.3048

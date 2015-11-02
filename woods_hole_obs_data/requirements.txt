@@ -1,7 +1,6 @@
 numpy
 netCDF4
-thredds_crawler
+thredds_crawler>=1.1.0
 requests
-coloredlogs
 epic2cf>=0.0.4
 pyaxiom>=1.0.9
