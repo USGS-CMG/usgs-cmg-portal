@@ -6,4 +6,4 @@ A place to store code, discuss and track issues regarding the USGS Coastal and M
 [USGS-CMG Portal Wiki](https://github.com/USGS-CMG/usgs-cmg-portal/wiki/USGS-CMG-Portal-Wiki)
 ===
 
-For more information, including how to get your data connected, see the [USGS-CMG Portal Wiki](https://github.com/USGS-CMG/usgs-cmg-portal/wiki/USGS-CMG-Portal-Wiki)
+For more information, including how to get your data connected, see the [USGS-CMG Portal Wiki](https://github.com/USGS-CMG/usgs-cmg-portal/wiki/Home)
