@@ -54,7 +54,7 @@ project_name,contributor_name,project_title,project_summary,catalog_xml
 $ python collect.py --help
 usage: collect.py [-h] -o [OUTPUT] [-d] [-f FOLDER]
                   [-p [PROJECTS [PROJECTS ...]]] [-l [FILES [FILES ...]]]
-                  [-c [CSV_METADATA_FILE]]
+                  [-c [CSV_METADATA_FILE]] [-s SINCE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -79,6 +79,9 @@ optional arguments:
   -c [CSV_METADATA_FILE], --csv_metadata_file [CSV_METADATA_FILE]
                         CSV file to load metadata about each project from.
                         Defaults to 'project_metadata.csv'.
+  -s SINCE, --since SINCE
+                        Only process data modified since (utc) - format YYYY-
+                        MM-DDTHH:II
 ```
 
 
@@ -118,5 +121,21 @@ python collect.py --download \
 ##### Reprocess already downloaded files with new CSV metadata
 ```bash
 python collect.py --projects SOUTHERN_CAL \
+                  --folder [path_to_downloaded_files] \
                   --output=./output/
 ```
+
+
+##### Reprocess project specific files modified since a date/time
+```bash
+python collect.py --download \
+                  --projects SOUTHERN_CAL \
+                  --since 2016-02-06T00:00 \
+                  --output=./output/
+```
+
+##### Reprocess files modified since 24 hours ago (linux only)
+```bash
+python collect.py --download \
+                  --since $(date -u -d '-1 day' +%Y-%m-%dT%H:%M) \
+                  --output=./output/

@@ -12,6 +12,7 @@ from copy import copy
 from glob import glob
 from datetime import datetime
 
+import pytz
 import epic2cf
 from epic2cf.data import *
 import netCDF4
@@ -170,7 +171,7 @@ global_attributes = {
 coord_vars      = ['feature_type_instance', 'time', 'time2', 'time_cf', 'old_time', 'depth', 'depth002', 'depth003', 'depth004', 'depth005', 'lat', 'lon']
 
 
-def download(folder, project_metadata, filesubset):
+def download(folder, project_metadata, filesubset, since):
 
     # Use thredds_crawler to find DAP endpoints of the RAW data.
     total_datasets = []
@@ -178,8 +179,11 @@ def download(folder, project_metadata, filesubset):
 
     try:
         for k, v in project_metadata.items():
-            # http://regexr.com/3bleg
-            datasets = Crawl(v['catalog_xml'], select=['([0-9]+\..*|.*(-(a|A)|(ls|[0-9]s|isus|[aAB]s|sgs|aqds|vs|pcs|d|tide)-cal){1}(?!lp)(?!1(h|H))\.*.*)'], skip=skips).datasets
+            # http://regexr.com/3conn
+            datasets = Crawl(v['catalog_xml'],
+                             select=['([0-9]+\..*|.*(-(a|A)|(ls|[0-9]s|isus|[aAB]s|sgs|aqds|vs|pcs|d|tide)-cal){1}(?!lp)(?!1(h|H))\.*.*)'],
+                             skip=skips,
+                             after=since).datasets
             logger.info("Found {0} datasets in {1}!".format(len(datasets), k))
             total_datasets += datasets
         logger.info("Found {0} TOTAL datasets!".format(len(total_datasets)))
@@ -374,7 +378,7 @@ def normalize_time(netcdf_file):
         return time_data[0]
 
 
-def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None):
+def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None, since=None):
     project_metadata = dict()
     with open(csv_metadata_file, 'r') as f:
         reader = csv.DictReader(f)
@@ -391,12 +395,17 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
     if do_download:
         try:
-            downloaded_files = download(download_folder, project_metadata, filesubset)
+            downloaded_files = download(download_folder, project_metadata, filesubset, since)
         except KeyboardInterrupt:
             logger.exception('Error downloading datasets from THREDDS')
             downloaded_files = []
     else:
         downloaded_files = glob(os.path.join(download_folder, '**', '*'))
+        if since is not None:
+            def should_keep(d):
+                modt = datetime.utcfromtimestamp(os.path.getmtime(d)).replace(tzinfo=pytz.utc)
+                return modt >= since
+            downloaded_files = [ dl for dl in downloaded_files if should_keep(dl) ]
 
     for down_file in sorted(downloaded_files):
 
@@ -513,7 +522,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     platform_type = getattr(onc, 'platform_type', 'fixed').lower()
                     onc.variables['platform'].setncattr('type', platform_type)
                     onc.variables['platform'].setncattr('nodc_name', "FIXED PLATFORM, MOORINGS")
-
 
                 v = []
                 depth_files = []
@@ -649,6 +657,14 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
 
 if __name__ == "__main__":
+
+    def valid_date(s):
+        try:
+            return datetime.strptime(s, "%Y-%m-%dT%H:%M").replace(tzinfo=pytz.utc)
+        except ValueError:
+            msg = "Not a valid date: '{0}'.".format(s)
+            raise argparse.ArgumentTypeError(msg)
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-o', '--output',
@@ -676,6 +692,9 @@ if __name__ == "__main__":
                         help="CSV file to load metadata about each project from.  Defaults to 'project_metadata.csv'.",
                         default='project_metadata.csv',
                         nargs='?')
+    parser.add_argument('-s', '--since',
+                        help="Only process data modified since (utc) - format YYYY-MM-DDTHH:II",
+                        type=valid_date)
     args = parser.parse_args()
 
     projects = args.projects
@@ -685,4 +704,4 @@ if __name__ == "__main__":
     files = args.files
     if files:
         files = [ x.lower() for x in args.files ]
-    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file), files)
+    main(args.output, args.folder, args.download, projects, os.path.realpath(args.csv_metadata_file), files, args.since)
