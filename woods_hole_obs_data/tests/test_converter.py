@@ -27,7 +27,6 @@ class ConverterTests(unittest.TestCase):
         self.csv = os.path.join(os.path.dirname(__file__), '..', 'project_metadata.csv')
 
     def tearDown(self):
-        return
         try:
             shutil.rmtree(self.output)
         except OSError:
@@ -368,6 +367,26 @@ class ConverterTests(unittest.TestCase):
             assert nc.variables['platform'].type == 'fixed'
             assert 'CS_300' in nc.variables
             assert 'CD_310' in nc.variables
+            assert 'u_1205' in nc.variables
+            assert 'v_1206' in nc.variables
+            assert 'w_1204' in nc.variables
+
+    def test_vector_conversion_2(self):
+        project = 'MBAY_LT'
+        ncfile = '5071spd-a_d1.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 507
+            assert nc.id == os.path.splitext(ncfile)[0]
+            assert nc.variables['platform'].type == 'fixed'
+            assert 'CS_300' in nc.variables
+            assert 'CD_310' in nc.variables
+            assert 'u_1205' in nc.variables
+            assert 'v_1206' in nc.variables
+            assert 'w_1204' in nc.variables
 
     def test_fillvalues(self):
         project = 'BW2011'
