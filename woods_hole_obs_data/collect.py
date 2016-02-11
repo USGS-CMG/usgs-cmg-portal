@@ -335,12 +335,16 @@ def normalize_vectors(netcdf_file):
             east_fill_value = east._FillValue if hasattr(east, '_FillValue') else np.nan
             spd = nc.createVariable('CS_300', east.dtype, east.dimensions, fill_value=east_fill_value)
             spd.standard_name = 'sea_water_speed'
-            spd.epic_code     = 300
+            spd.long_name = "Current speed"
+            spd.units = 'm/s'
+            spd.epic_code = 300
             spd[:] = speed
 
             drc = nc.createVariable('CD_310', east.dtype, east.dimensions, fill_value=east_fill_value)
             drc.standard_name = 'direction_of_sea_water_velocity'
-            drc.epic_code     = 310
+            drc.long_name = "Current direction"
+            drc.units = 'degree'
+            drc.epic_code = 310
             drc[:] = direction
 
 
