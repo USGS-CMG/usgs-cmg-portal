@@ -534,6 +534,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                         if other in coord_vars:
                             continue
 
+                        ovsd = None  # old var sensor depth
                         old_var = nc.variables.get(other)
                         variable_attributes = { k : getattr(old_var, k) for k in old_var.ncattrs() }
                         # Remove/rename some attributes
@@ -550,7 +551,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             # sensor_depth is ALWAYS positive "down", so don't convert!
                             # This is contrary to the "positive" attribute on the Z axis.
                             # variable_attributes['sensor_depth'] = variable_attributes['sensor_depth'] * -1
-                            pass
+                            # Round the sensor_depth attribute
+                            variable_attributes['sensor_depth'] = np.around(variable_attributes['sensor_depth'], decimals=4)
+                            ovsd = np.around(old_var.sensor_depth * depth_conversion, decimals=4)
 
                         fillvalue = None
                         if hasattr(old_var, "_FillValue"):
@@ -606,22 +609,22 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                         elif len(old_var.dimensions) == 1 and old_var.dimensions[0] == 'time':
                             # A single time dimensioned variable, like pitch, roll, record count, etc.
                             ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
-                        elif old_var.ndim <= 3 and hasattr(old_var, 'sensor_depth') and \
+                        elif old_var.ndim <= 3 and ovsd and \
                                 ((depth_values.size == 1 and not depth_variable and 'time' in old_var.dimensions) or
                                  (depth_values.size  > 1 and not depth_variable and 'time' in old_var.dimensions and 'sensor_depth' in ts.ncd.variables)):
 
-                            if 'sensor_depth' in ts.ncd.variables and np.isclose(ts.ncd.variables['sensor_depth'][:], old_var.sensor_depth*depth_conversion):
-                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                            if 'sensor_depth' in ts.ncd.variables and np.isclose(ts.ncd.variables['sensor_depth'][:], ovsd):
+                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[ovsd], fillvalue=fillvalue, attributes=variable_attributes)
                             else:
                                 # Search through secondary files that have been created for detached variables at a certain depth and
                                 # try to match this variable with one of the depths.
                                 found_df = False
                                 for dfts in depth_files:
-                                    if isinstance(old_var.sensor_depth, np.ndarray):
+                                    if isinstance(ovsd, np.ndarray):
                                         # Well, this is a bad file.
                                         raise ValueError("The sensor_depth attribute has more than one value, please fix the source NetCDF: {}".format(down_file))
-                                    if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], old_var.sensor_depth*depth_conversion):
-                                        dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                    if np.isclose(dfts.ncd.variables[ts.vertical_axis_name][:], ovsd):
+                                        dfts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[ovsd], fillvalue=fillvalue, attributes=variable_attributes)
                                         found_df = True
                                         break
 
@@ -632,15 +635,15 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                     fga['id'] = os.path.splitext(new_file_name)[0]
                                     fga['title'] = '{0} - {1}'.format(os.path.basename(down_file), other)
                                     fga['description'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
-                                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[old_var.sensor_depth*depth_conversion], output_filename=new_file_name, vertical_positive='up')
-                                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                    new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[ovsd], output_filename=new_file_name, vertical_positive='up')
+                                    new_ts.add_variable(other, values=old_var[:], times=times, verticals=[ovsd], fillvalue=fillvalue, attributes=variable_attributes)
                                     depth_files.append(new_ts)
                         elif old_var.ndim <= 3 and (depth_values.size > 1 and not depth_variable and 'time' in old_var.dimensions):
-                            if hasattr(old_var, 'sensor_depth'):
+                            if ovsd:
                                 # An ADCP or profiling dataset, but this variable is measued at a single depth.
                                 # Example: Bottom Temperature on an ADCP
                                 # Skip things with a dimension over 3 (some beam variables like `brange`)
-                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[old_var.sensor_depth*depth_conversion], fillvalue=fillvalue, attributes=variable_attributes)
+                                ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, verticals=[ovsd], fillvalue=fillvalue, attributes=variable_attributes)
                             else:
                                 ts.add_variable(other, values=old_var[:], times=times, unlink_from_profile=True, fillvalue=fillvalue, attributes=variable_attributes)
                         else:

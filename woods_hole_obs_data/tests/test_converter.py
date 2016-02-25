@@ -137,9 +137,8 @@ class ConverterTests(unittest.TestCase):
 
             assert 'z' not in nc.variables['Tx_1211'].dimensions
             # Make sure it was NOT converted to positive "up" (it is always positive down)
-            assert np.isclose(nc.variables['sensor_depth'][:], -15.964893579483)
-            assert np.isclose(nc.variables['Tx_1211'].sensor_depth, 15.964893579483)
-
+            assert np.isclose(nc.variables['sensor_depth'][0], -15.9649)
+            assert nc.variables['Tx_1211'].sensor_depth == 15.9649
             assert np.isclose(nc.variables['Tx_1211'][0], 16.81)
 
     def test_combine_multiple_depth_dimensions(self):
@@ -302,8 +301,7 @@ class ConverterTests(unittest.TestCase):
                                            -11.88249, -11.81849, -11.75449, -11.69049, -11.62649, -11.56249,
                                            -11.49849, -11.43449, -11.37049, -11.30649]))
             assert nc.variables['ATTN1_55'].sensor_depth == 9.25
-            assert np.allclose(nc.variables['sensor_depth'][:],
-                               -9.25)
+            assert np.allclose(nc.variables['sensor_depth'][0], -9.25)
             assert 'z' in nc.variables
 
     def test_variable_with_extra_dimensions(self):
