@@ -547,8 +547,10 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                             variable_attributes['actual_max'] = variable_attributes['maximum']
                             del variable_attributes['maximum']
                         if 'sensor_depth' in variable_attributes:
-                            # Convert to the correct positive "up" or "down"
-                            variable_attributes['sensor_depth'] = variable_attributes['sensor_depth'] * depth_conversion
+                            # sensor_depth is ALWAYS positive "down", so don't convert!
+                            # This is contrary to the "positive" attribute on the Z axis.
+                            # variable_attributes['sensor_depth'] = variable_attributes['sensor_depth'] * -1
+                            pass
 
                         fillvalue = None
                         if hasattr(old_var, "_FillValue"):

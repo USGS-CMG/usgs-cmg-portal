@@ -136,9 +136,9 @@ class ConverterTests(unittest.TestCase):
             assert np.isclose(nc.variables['latitude'][:], 43.3331)
 
             assert 'z' not in nc.variables['Tx_1211'].dimensions
-            # Make sure it was converted to positive "up" (from "down")
-            assert np.isclose(nc.variables['sensor_depth'][:], -15.964893579483032)
-            assert np.isclose(nc.variables['Tx_1211'].sensor_depth, -15.964893579483032)
+            # Make sure it was NOT converted to positive "up" (it is always positive down)
+            assert np.isclose(nc.variables['sensor_depth'][:], -15.964893579483)
+            assert np.isclose(nc.variables['Tx_1211'].sensor_depth, 15.964893579483)
 
             assert np.isclose(nc.variables['Tx_1211'][0], 16.81)
 
@@ -301,6 +301,7 @@ class ConverterTests(unittest.TestCase):
                                            -12.26649, -12.20249, -12.13849, -12.07449, -12.01049, -11.94649,
                                            -11.88249, -11.81849, -11.75449, -11.69049, -11.62649, -11.56249,
                                            -11.49849, -11.43449, -11.37049, -11.30649]))
+            assert nc.variables['ATTN1_55'].sensor_depth == 9.25
             assert np.allclose(nc.variables['sensor_depth'][:],
                                -9.25)
             assert 'z' in nc.variables
