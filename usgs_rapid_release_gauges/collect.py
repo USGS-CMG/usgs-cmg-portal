@@ -34,7 +34,7 @@ def main(output_format, output):
     waf = "http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/"
 
     r = requests.get(waf)
-    soup = BeautifulSoup(r.text)
+    soup = BeautifulSoup(r.text, "lxml")
     for link in soup.find_all('a'):
 
         # Skip non .txt files
