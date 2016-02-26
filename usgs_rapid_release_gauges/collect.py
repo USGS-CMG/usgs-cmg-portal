@@ -181,7 +181,16 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
     new_dates = list()
     for i in range(len(dates)):
         try:
-            new_dates.append(parse(dates[i] + " " + tz[i]).astimezone(pytz.utc))
+            if tz[i] in ["EST", "EDT"]:
+                zone = pytz.timezone("US/Eastern")
+            elif tz[i] in ["PST", "PDT"]:
+                zone = pytz.timezone("US/Pacific")
+            else:
+                raise ValueError("Unrecognizable Timezone {}".format(tz[i]))
+            zd = parse(dates[i])
+            zd = zone.localize(zd)
+            zd = zd.astimezone(pytz.utc)
+            new_dates.append(zd)
         except BaseException:
             # Remove row.  Bad date.
             df.drop(i, axis=0, inplace=True)
