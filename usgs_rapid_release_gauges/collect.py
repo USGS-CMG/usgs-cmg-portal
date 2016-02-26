@@ -171,7 +171,7 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
     name = dfz["station_nm"][0]
 
     comments, headers, data = split_file(contents, "agency_cd")
-    df = pd.DataFrame(data, columns=headers)
+    df = pd.DataFrame(data[1:], columns=headers)
 
     fillvalue = -9999.9
 
