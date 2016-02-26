@@ -5,3 +5,5 @@ pyproj
 beautifulsoup4
 pandas
 pyaxiom>=1.0.7
+lxml
+python-dateutil
