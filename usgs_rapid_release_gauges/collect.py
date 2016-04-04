@@ -5,17 +5,21 @@ import os
 import logging
 import argparse
 import calendar
+from copy import copy
 from datetime import datetime
+from itertools import groupby
+from operator import attrgetter
+from collections import namedtuple
 
 import pytz
 import requests
 from bs4 import BeautifulSoup
 
 from pyaxiom.netcdf.sensors import TimeSeries
+from pyaxiom.urn import IoosUrn
 
 from dateutil.parser import parse
 
-import numpy as np
 import pandas as pd
 
 import coloredlogs
@@ -28,39 +32,41 @@ logger = logging.getLogger()
 coloredlogs.install(level=logging.INFO)
 logger.setLevel(logging.INFO)
 
+variable_map = {
+    '01_00065' : {'long_name' : 'Gage height', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
+    '03_00035' : {'long_name' : 'Wind Speed', 'standard_name' : 'wind_speed', 'units': 'mph'},
+    '04_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
+    '05_00035' : {'long_name' : 'Wind Speed', 'standard_name' : 'wind_speed', 'units': 'mph'},
+    '06_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
+    '04_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
+    '02_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
+    '05_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'millimeters of mercury'},
+    '07_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'millimeters of mercury'},
+    '09_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'millimeters of mercury'},
+    '03_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
+    '08_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
+    '09_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
+    '06_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+    '07_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+    '08_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
+    '05_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degree_Celsius'},
+    '06_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degree_Celsius'},
+    '07_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degree_Celsius'},
+    '19_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
+    '01_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
+    'elevation' : {'long_name' : 'Water Level Elevation above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
+    'pressure' : {'long_name' : 'Barometric Pressure', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'air_pressure', 'units': 'PSI'},
+}
 
-def main(output_format, output):
 
-    waf = "http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/"
+fillvalue = -9999.9
 
-    r = requests.get(waf)
-    soup = BeautifulSoup(r.text, "lxml")
-    for link in soup.find_all('a'):
 
-        # Skip non .txt files
-        site_id, ext = os.path.splitext(link['href'])
-        if ext != ".txt":
-            continue
-
-        csv_link = waf + link['href']
-        logger.info("Downloading '{}'".format(csv_link))
-        d = requests.get(csv_link)
-        try:
-            d.raise_for_status()
-        except requests.exceptions.HTTPError:
-            logger.error("Could not download: {!s}, skipping. Status code: {!s}".format(csv_link, d.status_code))
-            continue
-
-        contents = d.text
-        for line in contents.split("\n"):
-            if "agency_cd" in line:
-                parse_type_1(output_format, site_id, contents, output, csv_link)
-                break
-            elif "date_time_GMT" in line:
-                parse_type_2(output_format, site_id, contents, output, csv_link)
-                break
-            else:
-                continue
+def to_floats(x):
+    try:
+        return float(x)
+    except ValueError:
+        return fillvalue
 
 
 def split_file(c, data_key):
@@ -84,7 +90,172 @@ def split_file(c, data_key):
     return comments, headers, data
 
 
-def parse_type_1(output_format, site_id, contents, output, csv_link):
+FileResult = namedtuple('FileResult', ['df', 'lat', 'lon', 'z', 'site', 'name'])
+
+
+def get_globals(lat, lon, z, name, site):
+    # Add global attributes to appear in the resulting NetCDF file
+    return dict(
+        title=name,
+        summary='USGS Hurricane Sandy Rapid Response Stations.  Data acquired from http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/',
+        keywords='usgs, waterdata, elevation, water, waterlevel, sandy, hurricane, rapid, response, {}'.format(site),
+        keywords_vocaublary='None',
+        naming_authority='gov.usgs',
+        id=site,
+        cdm_data_type='Station',
+        creator='USGS',
+        creator_url='http://waterdata.usgs.gov',
+        creator_institution='USGS',
+        creator_urn='gov.usgs',
+        publisher='Axiom Data Science',
+        publisher_uri='http://axiomdatascience.com',
+        processing_level='None',
+        acknowledgement='None',
+        geospatial_bounds='POINT({!s} {!s} {!s})'.format(lon, lat, z),
+        geospatial_lat_min=lat,
+        geospatial_lat_max=lat,
+        geospatial_lon_min=lon,
+        geospatial_lon_max=lon,
+        license='Freely Distributed',
+        date_created=datetime.utcnow().replace(second=0, microsecond=0).isoformat()
+    )
+
+
+def main(output_format, output, do_download, download_folder, filesubset=None):
+
+    if do_download is True:
+
+        try:
+            os.makedirs(download_folder)
+        except OSError:
+            pass
+
+        waf = 'http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/'
+
+        r = requests.get(waf)
+        soup = BeautifulSoup(r.text, "lxml")
+
+        for link in soup.find_all('a'):
+
+            # Skip non .txt files
+            site_id, ext = os.path.splitext(link['href'])
+            if ext != ".txt":
+                continue
+
+            if filesubset and site_id.lower() not in filesubset:
+                # Skip this file!
+                continue
+
+            csv_link = waf + link['href']
+            logger.info("Downloading '{}'".format(csv_link))
+            d = requests.get(csv_link)
+            try:
+                d.raise_for_status()
+            except requests.exceptions.HTTPError:
+                logger.error("Could not download: {!s}, skipping. Status code: {!s}".format(csv_link, d.status_code))
+                continue
+
+            with open(os.path.join(download_folder, os.path.basename(csv_link)), 'wt') as f:
+                f.write(d.text)
+
+    # Yes, this uses lots of RAM, but we need to match up lon/lat positions later on.
+    results = []
+    for datafile in os.listdir(download_folder):
+
+        site_id = os.path.splitext(os.path.basename(datafile))[0]
+
+        if filesubset and site_id.lower() not in filesubset:
+            # Skip this file!
+            continue
+
+        with open(os.path.join(download_folder, datafile)) as d:
+            contents = d.read()
+            r = None
+            for line in contents.split("\n"):
+                if "agency_cd" in line:
+                    r = parse_type_1(output_format, site_id, contents, output)
+                    break
+                elif "date_time_GMT" in line:
+                    r = parse_type_2(output_format, site_id, contents, output)
+                    break
+                else:
+                    continue
+
+            if r is None:
+                logger.error('Could not process file: {}'.format(datafile))
+            else:
+                logger.info("Processed {}".format(datafile))
+                results.append(r)
+
+    results = sorted(results, key=attrgetter('lon', 'lat'))
+    gresults = groupby(results, attrgetter('lon', 'lat'))
+
+    for (glon, glat), group in gresults:
+
+        groups = [ x for x in list(group) if x ]
+
+        # Strip off the variable type if need be
+        gsite = groups[0].site
+        if gsite[-2:] in ['WV', 'BP', 'WL']:
+            gsite = gsite[:-2]
+
+        for result in groups:
+
+            gas = get_globals(glat, glon, result.z, result.name, gsite)
+            station_urn = IoosUrn(asset_type='station',
+                                  authority=gas['naming_authority'],
+                                  label=gsite)
+
+            if output_format == 'cf16':
+                # If CF, a file for each result dataframe
+                times = [ calendar.timegm(x.timetuple()) for x in result.df['time'] ]
+                verticals = result.df['depth'].values
+                output_filename = '{}.nc'.format(result.site)
+                ts = TimeSeries(output, latitude=glat, longitude=glon, station_name=gsite, global_attributes=gas, output_filename=output_filename, times=times, verticals=verticals)
+
+            for var in result.df.columns:
+                if var in ['date_time_GMT', 'datetime', 'time', 'depth', 'tz_cd', 'site_no', 'agency_cd']:
+                    continue
+
+                try:
+                    var_meta = variable_map[var]
+                except KeyError:
+                    logger.error("Variable {!s} was not found in variable map!".format(var))
+                    continue
+
+                # Convert to floats
+                result.df[var] = result.df[var].map(to_floats)
+                if var_meta["units"].lower() in ["feet", "ft"]:
+                    result.df[var] = [ v * 0.3048 if v != fillvalue else v for v in result.df[var] ]
+                    var_meta["units"] = "meters"
+                elif var_meta["units"].lower() in ["psi"]:
+                    result.df[var] = [ v * 68.9476 if v != fillvalue else v for v in result.df[var] ]
+                    var_meta["units"] = "mbar"
+                elif var_meta["units"].lower() in ['millimeters of mercury']:
+                    result.df[var] = [ v * 1.33322 if v != fillvalue else v for v in result.df[var] ]
+                    var_meta["units"] = "mbar"
+
+                if output_format == 'axiom':
+                    # If Axiom, a file for each variable
+                    sensor_urn = copy(station_urn)
+                    sensor_urn.asset_type = 'sensor'
+                    sensor_urn.component = var_meta['standard_name']
+
+                    output_directory = os.path.join(output, gsite)
+                    output_filename = '{}_{}.nc'.format(result.site, var_meta['standard_name'])
+                    ts = TimeSeries.from_dataframe(result.df, output_directory, output_filename, glat, glon, station_urn.urn, gas, var_meta["standard_name"], var_meta, sensor_vertical_datum='NAVD88', fillvalue=fillvalue, data_column=var, vertical_axis_name='height')
+                    ts.add_instrument_metadata(urn=sensor_urn.urn)
+                elif output_format == 'cf16':
+                    # If CF, add variable to existing TimeSeries
+                    try:
+                        int(var[0])
+                        variable_name = 'v_{}'.format(var)
+                    except BaseException:
+                        variable_name = var
+                    ts.add_variable(variable_name, values=result.df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum='NAVD88')
+
+
+def parse_type_1(output_format, site_id, contents, output):
     """
     # ---------------------------------- WARNING ----------------------------------------
     # The data you have obtained from this automated U.S. Geological Survey database
@@ -123,57 +294,28 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
     USGS    395740074482628 2012-10-28 14:15    EST 4.0 P   754 P   0.00    P   3.87    P
     ...
     """
-    # lat/lon point: http://waterservices.usgs.gov/nwis/site/?sites=395740074482628
-
-    variable_map = {
-        '01_00065' : {'long_name' : 'Gage height', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
-        '03_00035' : {'long_name' : 'Wind Speed', 'standard_name' : 'wind_speed', 'units': 'mph'},
-        '04_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
-        '05_00035' : {'long_name' : 'Wind Speed', 'standard_name' : 'wind_speed', 'units': 'mph'},
-        '06_00035' : {'long_name' : 'Wind Gust', 'standard_name' : 'wind_speed_of_gust', 'units': 'mph'},
-        '04_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
-        '02_00036' : {'long_name' : 'Wind Direction', 'standard_name' : 'wind_from_direction', 'units': 'degrees'},
-        '05_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
-        '07_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
-        '09_00025' : {'long_name' : 'Air Pressure', 'standard_name' : 'air_pressure', 'units': 'mm of mercury'},
-        '03_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
-        '08_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
-        '09_00045' : {'long_name' : 'Total Precipitation', 'standard_name' : 'lwe_thickness_of_precipitation_amount', 'units': 'inches'},
-        '06_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
-        '07_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
-        '08_00052' : {'long_name' : 'Relative Humidity', 'standard_name' : 'relative_humidity', 'units': 'percent'},
-        '05_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
-        '06_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
-        '07_00020' : {'long_name' : 'Air Temperature', 'standard_name' : 'air_temperature', 'units': 'degrees_Celsius'},
-        '19_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
-        '01_63160' : {'long_name' : 'Water Surface Height Above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
-    }
-
     # Get metadata from a seperate endpoint.
+    # lat/lon point: http://waterservices.usgs.gov/nwis/site/?sites=395740074482628
     d = requests.get("http://waterservices.usgs.gov/nwis/site/?sites={!s}".format(site_id))
     try:
         d.raise_for_status()
     except requests.exceptions.HTTPError:
         logger.error("Could not find lat/lon endpoint for station {!s}, skipping. Status code: {!s}".format(site_id, d.status_code))
-        return
+        return None
     _, hz, dz = split_file(d.text, "agency_cd")
     # Strip off the one line after the headers
     dz = dz[1:]
     dfz  = pd.DataFrame(dz, columns=hz)
     lat  = float(dfz["dec_lat_va"][0])
     lon  = float(dfz["dec_long_va"][0])
-    sensor_vertical_datum = dfz["alt_datum_cd"][0] or "NAVD88"
     try:
         z = float(dfz["alt_va"][0])
     except ValueError:
         z = 0.
-    loc  = "POINT({!s} {!s} {!s})".format(lon, lat, z)
     name = dfz["station_nm"][0]
 
     comments, headers, data = split_file(contents, "agency_cd")
     df = pd.DataFrame(data[1:], columns=headers)
-
-    fillvalue = -9999.9
 
     # Combine date columns
     dates = df["datetime"]
@@ -203,84 +345,10 @@ def parse_type_1(output_format, site_id, contents, output, csv_link):
         if "_cd" in h:
             df.drop(h, axis=1, inplace=True)
 
-    # Add global attributes to appear in the resulting NetCDF file
-    global_attributes = dict(
-        title=name,
-        summary='USGS Hurricane Sandy Rapid Response Stations.  Data acquired from "http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/.',
-        keywords="usgs, waterdata, elevation, water, waterlevel, sandy, hurricane, rapid, response, %s" % site_id,
-        keywords_vocaublary="None",
-        naming_authority='gov.usgs',
-        id=site_id,
-        cdm_data_type="Station",
-        history="NetCDF file generated from {!s}".format(csv_link),
-        creator="USGS",
-        creator_url="http://waterdata.usgs.gov",
-        creator_institution="USGS",
-        creator_urn="gov.usgs",
-        publisher="Axiom Data Science",
-        publisher_uri="http://axiomdatascience.com",
-        processing_level="None",
-        acknowledgement="None",
-        geospatial_bounds=loc,
-        geospatial_lat_min=lat,
-        geospatial_lat_max=lat,
-        geospatial_lon_min=lon,
-        geospatial_lon_max=lon,
-        license="Freely Distributed",
-        date_created=datetime.utcnow().replace(second=0, microsecond=0).isoformat()
-    )
-
-    def to_floats(x):
-        try:
-            return float(x)
-        except ValueError:
-            return fillvalue
-
-    min_time = df['time'].min()
-    max_time = df['time'].max()
-
-    full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
-    if output_format == 'cf16':
-        output_filename = '{}_{}-{}.nc'.format(site_id, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
-        times = [ calendar.timegm(x.timetuple()) for x in df["time"] ]
-        verticals = df['depth'].values
-        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals, vertical_axis_name='height', vertical_positive='down')
-
-    for var in df.columns:
-        if var in ['datetime', 'time', 'depth', 'tz_cd', 'site_no', 'agency_cd']:
-            continue
-
-        try:
-            var_meta = variable_map[var]
-        except KeyError:
-            logger.error("Variable {!s} was not found in variable map!".format(var))
-            continue
-
-        # Convert to floats
-        df[var] = df[var].map(to_floats)
-
-        # Change feet to meters
-        if var_meta["units"] in ["feet", "ft"]:
-            df[var] = np.asarray([ v * 0.3048 if v != fillvalue else v for v in df[var] ])
-            var_meta["units"] = "meters"
-
-        if output_format == 'axiom':
-            full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-            output_directory = os.path.join(output, full_sensor_urn)
-            output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
-            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var, vertical_axis_name='height', vertical_positive='down')
-            ts.add_instrument_metadata(urn=full_sensor_urn)
-        elif output_format == 'cf16':
-            # Variable names shouldn't start with a number
-            try:
-                int(var[0])
-                variable_name = 'v_{}'.format(var)
-            except:
-                variable_name = var
-            ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
+    return FileResult(df=df, lat=lat, lon=lon, z=z, site=site_id, name=name)
 
 
-def parse_type_2(output_format, site_id, contents, output, csv_link):
+def parse_type_2(output_format, site_id, contents, output):
     """
     # These data are provisional and subject to revision.
     # Data processed as of 12/05/2012 11:54:29.
@@ -321,26 +389,14 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
     10-28-2012 06:03:00 0.76    14.5145
     ...
     """
-
-    variable_map = {
-        'elevation' : {'long_name' : 'Water Level Elevation above Reference Datum (NAVD88)', 'geoid_name' : 'NAVD88', 'vertical_datum' : 'NAVD88', 'water_surface_reference_datum' : 'NAVD88', 'standard_name' : 'water_surface_height_above_reference_datum', 'units': 'feet'},
-    }
-
-    def to_floats(x):
-        try:
-            return float(x)
-        except ValueError:
-            return fillvalue
-
     comments, headers, data = split_file(contents, "date_time_GMT")
     df = pd.DataFrame(data, columns=headers)
-    fillvalue = -9999.9
 
     lat     = None
     lon     = None
     z       = 0
     name    = site_id
-    sensor_vertical_datum = "NAVD88"
+    varname   = None
 
     for c in comments:
         if "Sensor location latitude" in c:
@@ -350,91 +406,55 @@ def parse_type_2(output_format, site_id, contents, output, csv_link):
         elif "Site id" in c:
             site_id = list(filter(None, map(lambda x: x.strip(), c.split(" "))))[-1]
             name = site_id
+        elif "Site type" in c:
+            if 'water level' in c:
+                varname = 'elevation'
+            elif 'pressure' in c:
+                varname = 'pressure'
+            elif 'wave height' in c:
+                varname = 'elevation'  # For real... its just more rapid elevation data
+            else:
+                raise ValueError("Site type '{}' could not be identified!".format(c))
         elif "Sensor elevation" in c:
-            sensor_vertical_datum = "".join(c.split("=")[0].split(" ")[4:6])
+            # sensor_vertical_datum = "".join(c.split("=")[0].split(" ")[4:6])
             l = list(filter(None, map(lambda x: x.strip(), c.split(" "))))
             z = float(l[-2])
             if l[-1] in ["feet", "ft"]:
                 z *= 0.3048
 
-    loc = "POINT({!s} {!s} {!s})".format(lon, lat, z)
     df['time'] = df["date_time_GMT"].map(lambda x: parse(x + " UTC"))
     df['depth'] = [ z for x in range(len(df['time'])) ]
 
-    # Add global attributes to appear in the resulting NetCDF file
-    global_attributes = dict(
-        title=name,
-        summary='USGS Hurricane Sandy Rapid Response Stations.  Data acquired from http://ga.water.usgs.gov/flood/hurricane/sandy/datafiles/.',
-        keywords="usgs, waterdata, elevation, water, waterlevel, sandy, hurricane, rapid, response, %s" % site_id,
-        keywords_vocaublary="None",
-        naming_authority='gov.usgs',
-        id=site_id,
-        cdm_data_type="Station",
-        history="NetCDF file generated from {!s}".format(csv_link),
-        creator="USGS",
-        creator_url="http://waterdata.usgs.gov",
-        creator_institution="USGS",
-        creator_urn="gov.usgs",
-        publisher="Axiom Data Science",
-        publisher_uri="http://axiomdatascience.com",
-        processing_level="None",
-        acknowledgement="None",
-        geospatial_bounds=loc,
-        geospatial_lat_min=lat,
-        geospatial_lat_max=lat,
-        geospatial_lon_min=lon,
-        geospatial_lon_max=lon,
-        license="Freely Distributed",
-        date_created=datetime.utcnow().replace(second=0, microsecond=0).isoformat()
-    )
+    # Because "pressure" and "wave_height" also has the column name of "elevation"...
+    df = df.rename(columns={'elevation' : varname})
 
-    full_station_urn = "urn:ioos:station:{!s}:{!s}".format(global_attributes["naming_authority"], site_id)
-    min_time = df["time"].min()
-    max_time = df["time"].max()
-
-    if output_format == 'cf16':
-        times = [ calendar.timegm(x.timetuple()) for x in df['time'] ]
-        verticals = df['depth'].values
-        output_filename = '{}_{}-{}.nc'.format(site_id, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
-        ts = TimeSeries(output, latitude=lat, longitude=lon, station_name=full_station_urn, global_attributes=global_attributes, output_filename=output_filename, times=times, verticals=verticals)
-
-    for var in df.columns:
-        if var in ['date_time_GMT', 'time', 'depth']:
-            continue
-        try:
-            int(var[0])
-            variable_name = 'v_{}'.format(var)
-        except:
-            variable_name = var
-
-        try:
-            var_meta = variable_map[var]
-        except KeyError:
-            logger.error("Variable {!s} was not found in variable map!".format(var))
-            continue
-
-        # Convert to floats
-        df[var] = df[var].map(to_floats)
-        if var_meta["units"] in ["feet", "ft"]:
-            df[var] = [ v * 0.3048 if v != fillvalue else v for v in df[var] ]
-            var_meta["units"] = "meters"
-
-        if output_format == 'axiom':
-            full_sensor_urn = "urn:ioos:sensor:{!s}:{!s}:{!s}".format(global_attributes["naming_authority"], site_id, var_meta["standard_name"])
-            output_directory = os.path.join(output, full_sensor_urn)
-            output_filename = '{}_{}-{}.nc'.format(var, min_time.strftime('%Y%m%dT%H%M%S'), max_time.strftime('%Y%m%dT%H%M%S'))
-            ts = TimeSeries.from_dataframe(df, output_directory, output_filename, lat, lon, full_station_urn, global_attributes, var_meta["standard_name"], var_meta, sensor_vertical_datum=sensor_vertical_datum, fillvalue=fillvalue, data_column=var)
-            ts.add_instrument_metadata(urn=full_sensor_urn)
-        elif output_format == 'cf16':
-            ts.add_variable(variable_name, values=df[var].values, attributes=var_meta, fillvalue=fillvalue, sensor_vertical_datum=sensor_vertical_datum)
+    return FileResult(df=df, lat=lat, lon=lon, z=z, site=site_id, name=name)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('format', action='store', choices=('axiom', 'cf16',), help="Which type of file to produce. You most likely want 'cf16'.")
+    parser.add_argument('-d', '--download',
+                        action='store_true',
+                        default=False,
+                        help="Should we download a new set of files or use the files that have already been downloaded? \
+                             Useful for debugging.  Downloaded files are never altered in any way so you can rerun \
+                             the processing over and over without having to redownload any files.")
     parser.add_argument('-o', '--output',
-                        required=True,
-                        help="Directory to output NetCDF files to",
-                        nargs='?')
-    args          = parser.parse_args()
-    main(args.format, args.output)
+                        default=os.path.abspath(os.path.join(".", "output")),
+                        help="Directory to output NetCDF files to")
+    parser.add_argument('-f', '--folder',
+                        default=os.path.abspath(os.path.join(".", "download")),
+                        help="Specify the folder location of ASCII files you wish to translate. If this is used along with '--download', the files \
+                              will be downloaded into this folder and then processed.  If used without the '--download' option, this is the \
+                              location of the root folder you wish to translate into NetCDF files.")
+    parser.add_argument('-l', '--files',
+                        help="Specific files to process (optional).",
+                        nargs='*')
+    args = parser.parse_args()
+
+    files = args.files
+    if files:
+        files = [ x.lower() for x in args.files ]
+
+    main(args.format, args.output, args.download, args.folder, files)
