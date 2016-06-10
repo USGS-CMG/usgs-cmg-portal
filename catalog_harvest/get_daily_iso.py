@@ -24,7 +24,8 @@ SAVE_DIR="/usgs/data0/iso/iso_records"
 
 THREDDS_SERVERS = {
     "necofs1": "http://www.smast.umassd.edu:8080/thredds/forecasts.html",
-    "coawst":   "http://geoport-dev.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.html" 
+    "coawst":   "http://geoport-dev.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.html",
+    "estofs_wh": "http://geoport-dev.whoi.edu/thredds/estofs_agg.html"
 }
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
