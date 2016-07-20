@@ -7,3 +7,4 @@ pandas
 pyaxiom>=1.0.7
 lxml
 python-dateutil
+coloredlogs
