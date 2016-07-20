@@ -5,3 +5,4 @@ requests
 epic2cf>=0.0.4
 pyaxiom>=1.0.9
 pytz
+coloredlogs
