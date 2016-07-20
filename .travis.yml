@@ -30,15 +30,13 @@ install:
   # Customise the testing environment
   # ---------------------------------
   # woods_hole_obs_data
-  - conda install -c ioos -c axiom-data-science --file woods_hole_obs_data/requirements.txt
-  - pip install -r woods_hole_obs_data/requirements-pip.txt
+  - conda install -c conda-forge -c axiom-data-science --file woods_hole_obs_data/requirements.txt
 
   # usgs_rapid_release_gauges
-  - conda install -c ioos -c axiom-data-science --file usgs_rapid_release_gauges/requirements.txt
-  - pip install -r usgs_rapid_release_gauges/requirements-pip.txt
+  - conda install -c conda-forge -c axiom-data-science --file usgs_rapid_release_gauges/requirements.txt
 
   # testing
-  - conda install -c ioos pytest
+  - conda install -c conda-forge pytest
 
   - conda list --export
   - pip freeze
