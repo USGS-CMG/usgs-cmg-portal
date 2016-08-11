@@ -484,8 +484,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
                 file_global_attributes.update(global_attributes)
                 file_global_attributes['id'] = feature_name
-                file_global_attributes['title'] = os.path.basename(down_file)
-                file_global_attributes['description'] = '{0} - {1}'.format(project_name, os.path.basename(down_file))
+                file_global_attributes['title'] = '{0} - {1}'.format(project_name, mooring_id)
+                file_global_attributes['description'] = '{0} - {1} - {2}'.format(project_name, mooring_id, os.path.basename(down_file))
                 file_global_attributes['MOORING'] = mooring_id
                 file_global_attributes['original_filename'] = fname
                 file_global_attributes['original_folder'] = project_name
@@ -633,8 +633,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                     new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
                                     fga = copy(file_global_attributes)
                                     fga['id'] = os.path.splitext(new_file_name)[0]
-                                    fga['title'] = '{0} - {1}'.format(os.path.basename(down_file), other)
-                                    fga['description'] = '{0} - {1} - {2}'.format(project_name, os.path.basename(down_file), other)
                                     new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[ovsd], output_filename=new_file_name, vertical_positive='up')
                                     new_ts.add_variable(other, values=old_var[:], times=times, verticals=[ovsd], fillvalue=fillvalue, attributes=variable_attributes)
                                     depth_files.append(new_ts)
