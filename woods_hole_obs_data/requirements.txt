@@ -3,6 +3,6 @@ netCDF4
 thredds_crawler>=1.2.0
 requests
 epic2cf>=0.0.4
-pyaxiom>=1.0.9
+pyaxiom>=1.2.0
 pytz
 coloredlogs
