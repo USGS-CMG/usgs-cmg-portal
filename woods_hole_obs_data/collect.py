@@ -369,7 +369,7 @@ def normalize_time(netcdf_file):
 
     with EnhancedDataset(netcdf_file, 'a') as nc:
         # Signell said this works, any problems and we can all blame him!
-        time_data = netCDF4.num2date((np.int64(nc.variables['time'][:])-2400001)*3600*24*1000 + nc.variables['time2'][:].__array__(), units=millisecond_units)
+        time_data = netCDF4.num2date((np.int64(nc.variables['time'][:])-2400001)*3600*24*1000 + nc.variables['time2'][:].__array__(), units=millisecond_units)  # noqa
         nc.renameVariable("time", "old_time")
         nc.sync()
 
@@ -433,7 +433,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             try:
                 first_time = normalize_time(temp_file)
             except (TypeError, ValueError, IndexError):
-                logger.error("Could not normalize the time variable. Skipping {0}.".format(down_file))
+                logger.exception("Could not normalize the time variable. Skipping {0}.".format(down_file))
                 continue
             except OverflowError:
                 logger.error("Dates out of range. Skipping {0}.".format(down_file))
@@ -630,7 +630,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
                                 # If we couldn't match the current or one of the existing secondary depth files, create a new one.
                                 if found_df is False:
-                                    new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files)+1, file_ext))
+                                    new_file_name = file_name.replace(file_ext, '_z{}{}'.format(len(depth_files) + 1, file_ext))
                                     fga = copy(file_global_attributes)
                                     fga['id'] = os.path.splitext(new_file_name)[0]
                                     new_ts = TimeSeries(output_directory, latitude, longitude, feature_name, fga, times=times, verticals=[ovsd], output_filename=new_file_name, vertical_positive='up')
