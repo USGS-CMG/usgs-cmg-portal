@@ -1,11 +1,9 @@
 #!python
 # coding=utf-8
-
 import os
 import logging
 import argparse
 import calendar
-from copy import copy
 from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
@@ -17,6 +15,7 @@ from bs4 import BeautifulSoup
 
 from pyaxiom.netcdf.sensors import TimeSeries
 from pyaxiom.urn import IoosUrn
+from pyaxiom.utils import urnify
 
 from dateutil.parser import parse
 
@@ -66,7 +65,7 @@ def to_floats(x):
     try:
         return float(x)
     except ValueError:
-        return fillvalue
+        return None
 
 
 def split_file(c, data_key):
@@ -226,25 +225,25 @@ def main(output_format, output, do_download, download_folder, filesubset=None):
                 # Convert to floats
                 result.df[var] = result.df[var].map(to_floats)
                 if var_meta["units"].lower() in ["feet", "ft"]:
-                    result.df[var] = [ v * 0.3048 if v != fillvalue else v for v in result.df[var] ]
+                    result.df[var] = result.df[var].apply(lambda x: None if pd.isnull(x) else x * 0.3048)
                     var_meta["units"] = "meters"
                 elif var_meta["units"].lower() in ["psi"]:
-                    result.df[var] = [ v * 68.9476 if v != fillvalue else v for v in result.df[var] ]
+                    result.df[var] = result.df[var].apply(lambda x: None if pd.isnull(x) else x * 68.9476)
                     var_meta["units"] = "mbar"
                 elif var_meta["units"].lower() in ['millimeters of mercury']:
-                    result.df[var] = [ v * 1.33322 if v != fillvalue else v for v in result.df[var] ]
+                    result.df[var] = result.df[var].apply(lambda x: None if pd.isnull(x) else x * 1.33322)
                     var_meta["units"] = "mbar"
+
+                # Now put the fillvalue we want to be interpreted
+                result.df.fillna(fillvalue, inplace=True)
 
                 if output_format == 'axiom':
                     # If Axiom, a file for each variable
-                    sensor_urn = copy(station_urn)
-                    sensor_urn.asset_type = 'sensor'
-                    sensor_urn.component = var_meta['standard_name']
-
                     output_directory = os.path.join(output, gsite)
                     output_filename = '{}_{}.nc'.format(result.site, var_meta['standard_name'])
                     ts = TimeSeries.from_dataframe(result.df, output_directory, output_filename, glat, glon, station_urn.urn, gas, var_meta["standard_name"], var_meta, sensor_vertical_datum='NAVD88', fillvalue=fillvalue, data_column=var, vertical_axis_name='height')
-                    ts.add_instrument_metadata(urn=sensor_urn.urn)
+                    sensor_urn = urnify(station_urn.authority, station_urn.label, var_meta)
+                    ts.add_instrument_metadata(urn=sensor_urn)
                 elif output_format == 'cf16':
                     # If CF, add variable to existing TimeSeries
                     try:
