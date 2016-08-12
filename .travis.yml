@@ -3,6 +3,7 @@ sudo: false
 python:
   - "2.7"
   - "3.4"
+  - "3.5"
 
 before_install:
   # Install miniconda
@@ -40,4 +41,4 @@ install:
 
   - conda list --export
 
-script: py.test -rx -v
+script: py.test -s -rxs -v

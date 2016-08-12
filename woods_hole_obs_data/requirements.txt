@@ -6,3 +6,5 @@ epic2cf>=0.0.4
 pyaxiom>=1.2.0
 pytz
 coloredlogs
+# Temporary to avoid buggy release
+libnetcdf==4.4.0
