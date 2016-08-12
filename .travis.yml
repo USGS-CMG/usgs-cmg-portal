@@ -31,16 +31,13 @@ install:
   # ---------------------------------
   # woods_hole_obs_data
   - conda install -c conda-forge --file woods_hole_obs_data/requirements.txt
-  - pip install -r woods_hole_obs_data/requirements-pip.txt
 
   # usgs_rapid_release_gauges
   - conda install -c conda-forge --file usgs_rapid_release_gauges/requirements.txt
-  - pip install -r usgs_rapid_release_gauges/requirements-pip.txt
 
   # testing
   - conda install -c conda-forge pytest
 
   - conda list --export
-  - pip freeze
 
 script: py.test -rx -v
