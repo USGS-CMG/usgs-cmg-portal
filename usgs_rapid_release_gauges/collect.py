@@ -4,6 +4,7 @@ import os
 import logging
 import argparse
 import calendar
+from copy import copy
 from datetime import datetime
 from itertools import groupby
 from operator import attrgetter
@@ -217,7 +218,7 @@ def main(output_format, output, do_download, download_folder, filesubset=None):
                     continue
 
                 try:
-                    var_meta = variable_map[var]
+                    var_meta = copy(variable_map[var])
                 except KeyError:
                     logger.error("Variable {!s} was not found in variable map!".format(var))
                     continue
