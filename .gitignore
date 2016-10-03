@@ -3,3 +3,5 @@
 *.sublime-*
 *.nc
 *.cdf
+.cache
+*.zip
