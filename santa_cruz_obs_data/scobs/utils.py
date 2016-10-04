@@ -9,6 +9,7 @@ import epic2cf
 import numpy as np
 from nco import Nco
 import netCDF4 as nc4
+from pyaxiom.netcdf.cf import CFDataset
 from compliance_checker.runner import ComplianceChecker, CheckSuite
 
 from scobs.mappings import (
@@ -49,6 +50,13 @@ def check_compliance(netcdf_file):
                         possible=results['possible_points']
                     )
                 )
+
+        for s in z:
+            level = 'info'
+            if not s.passed:
+                level = 'error'
+            getattr(logger, level)(s)
+
         return z
 
     except BaseException as e:
@@ -56,6 +64,118 @@ def check_compliance(netcdf_file):
     finally:
         if os.path.isfile(outfile):
             os.remove(outfile)
+
+
+def normalize_locations(netcdf_file):
+    with CFDataset(netcdf_file) as nc:
+        y = nc.variables.get("lat")
+        y_data = y[:]
+        y_atts = nc.vatts('lat')
+
+        x = nc.variables.get("lon")
+        x_data = x[:]
+        x_atts = nc.vatts('lon')
+
+    # Remove the old x/y variable so we can add new ones with no dimensions
+    o = Nco()
+    o.ncks(
+        input=netcdf_file,
+        output=netcdf_file,
+        options=[
+            '-O',
+            '-h',
+            '-x',
+            '-v', 'lat,lon'
+        ]
+    )
+
+    # Add the new X/Y variables
+    with nc4.Dataset(netcdf_file, 'a') as nc:
+        lat = nc.createVariable('lat', y_data.dtype)
+        lat[:] = y_data
+        y_atts.update({
+            'standard_name': 'latitude',
+            'axis': 'Y'
+        })
+        lat.setncatts(y_atts)
+
+        lon = nc.createVariable('lon', x_data.dtype)
+        lon[:] = x_data
+        x_atts.update({
+            'standard_name': 'longitude',
+            'axis': 'X'
+        })
+        lon.setncatts(x_atts)
+
+
+def normalize_depth_locations(netcdf_file):
+
+    redimension = []
+
+    with CFDataset(netcdf_file, 'a') as nc:
+        y = nc.variables.get("lat")
+        y_data = y[:]
+        y_atts = nc.vatts('lat')
+
+        x = nc.variables.get("lon")
+        x_data = x[:]
+        x_atts = nc.vatts('lon')
+
+        # Get list of variables to re-write with different dimensions
+        for vname, ov in nc.variables.items():
+            if 'lat' in ov.dimensions and 'lon' in ov.dimensions:
+                redimension.append(vname)
+
+        for vname in redimension:
+            ov = nc.variables[vname]
+            if 'depth' in ov.dimensions:
+                vdata = ov[:, :, 0, 0]
+                dims = ('time', 'depth')
+            else:
+                vdata = ov[:, 0, 0]
+                dims = ('time',)
+
+            vatts = nc.vatts(vname)
+            nc.renameVariable(vname, '{}_old'.format(vname))
+            nc.sync()
+
+            v = nc.createVariable(vname, vdata.dtype, dims)
+            v.setncatts(vatts)
+            v[:] = vdata
+
+    # Remove the old variables
+    remove_vars = [ '{}_old'.format(vname) for vname in redimension ]
+    remove_vars += ['lat', 'lon']
+
+    o = Nco()
+    o.ncks(
+        input=netcdf_file,
+        output=netcdf_file,
+        options=[
+            '-O',
+            '-h',
+            '-x',
+            '-v', ','.join(remove_vars)
+        ]
+    )
+
+    # Add the new X/Y variables
+    with nc4.Dataset(netcdf_file, 'a') as nc:
+        lat = nc.createVariable('lat', y_data.dtype)
+        lat[:] = y_data
+        y_atts.update({
+            'standard_name': 'latitude',
+            'axis': 'Y'
+        })
+        lat.setncatts(y_atts)
+
+        lon = nc.createVariable('lon', x_data.dtype)
+        lon[:] = x_data
+        x_atts.update({
+            'standard_name': 'longitude',
+            'axis': 'X'
+        })
+        lon.setncatts(x_atts)
 
 
 def normalize_units(netcdf_file):
