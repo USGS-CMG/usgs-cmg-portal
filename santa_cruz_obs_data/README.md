@@ -23,7 +23,7 @@ conda create -n usgscmg35 python=3.5
 Install dependencies
 
 ```python
-conda install -c conda-forge --file requirements.txt
+conda install -c conda-forge -c axiom-data-science --file requirements.txt
 ```
 
 Run the tests
