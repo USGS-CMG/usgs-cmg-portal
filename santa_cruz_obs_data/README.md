@@ -6,10 +6,10 @@ USGS CMG observational data into CF compliant netCDF files.
 This is not fully functional. It contains methods to convert (4) specific types
 of files.
 
-* ADCP AVG
-* ADCP WVS
-* ADV
-* CTD
+* Tripod - ADCP AVG
+* Tripod - ADCP WVS
+* Tripod - ADV
+* Tripod - CTD
 
 
 ### Getting Started
