@@ -8,7 +8,6 @@ from os.path import join as pjoin
 from os.path import dirname as dname
 from os.path import abspath as apath
 
-
 from scobs import ctd, adcp, adv
 
 import logging
