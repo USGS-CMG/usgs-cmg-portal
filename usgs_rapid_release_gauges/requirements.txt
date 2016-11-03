@@ -4,6 +4,9 @@ netCDF4
 pyproj
 beautifulsoup4
 pandas
-pyaxiom>=1.0.7
+pyaxiom>=1.2.0
 lxml
 python-dateutil
+coloredlogs
+# Temporary to avoid buggy release
+libnetcdf==4.4.0

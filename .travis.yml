@@ -3,6 +3,7 @@ sudo: false
 python:
   - "2.7"
   - "3.4"
+  - "3.5"
 
 before_install:
   # Install miniconda
@@ -30,17 +31,14 @@ install:
   # Customise the testing environment
   # ---------------------------------
   # woods_hole_obs_data
-  - conda install -c ioos -c axiom-data-science --file woods_hole_obs_data/requirements.txt
-  - pip install -r woods_hole_obs_data/requirements-pip.txt
+  - conda install -c conda-forge --file woods_hole_obs_data/requirements.txt
 
   # usgs_rapid_release_gauges
-  - conda install -c ioos -c axiom-data-science --file usgs_rapid_release_gauges/requirements.txt
-  - pip install -r usgs_rapid_release_gauges/requirements-pip.txt
+  - conda install -c conda-forge --file usgs_rapid_release_gauges/requirements.txt
 
   # testing
-  - conda install -c ioos pytest
+  - conda install -c conda-forge pytest
 
   - conda list --export
-  - pip freeze
 
-script: py.test -rx -v
+script: py.test -s -rxs -v

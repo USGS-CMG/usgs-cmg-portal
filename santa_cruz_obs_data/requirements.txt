@@ -1,0 +1,10 @@
+numpy
+netCDF4
+epic2cf>=0.0.4
+pygc
+pyaxiom>=1.3.2
+pytz
+pynco
+pytest
+coloredlogs
+compliance-checker

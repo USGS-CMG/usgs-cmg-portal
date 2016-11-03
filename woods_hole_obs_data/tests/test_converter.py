@@ -4,8 +4,8 @@
 import os
 import sys
 import shutil
-
 import unittest
+from datetime import datetime
 
 import numpy as np
 import netCDF4 as nc4
@@ -412,3 +412,31 @@ class ConverterTests(unittest.TestCase):
             # Data under water should be negative (positive "up")
             for v in nc.variables['z'][:]:
                 assert v < 0
+
+    def test_bad_start_time(self):
+        project = 'MONTEREY_CAN'
+        ncfile = '4232-a.cdf'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 423
+            assert nc.id == os.path.splitext(ncfile)[0]
+
+            t = nc.variables['time']
+            dates = nc4.num2date(t[:], units=t.units)
+
+            assert dates[0] > datetime(1990, 1, 1, 0)
+            assert dates[-1] < datetime(1995, 1, 1, 0)
+
+    def test_depth_precision(self):
+        project = 'FI14'
+        ncfile = '9912sc-a.nc'
+        output_file = self.download_and_process(project, ncfile)
+
+        with nc4.Dataset(output_file) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfile
+            assert nc.MOORING == 991
+            assert nc.id == os.path.splitext(ncfile)[0]
