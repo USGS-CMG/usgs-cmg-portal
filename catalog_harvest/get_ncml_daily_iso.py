@@ -7,7 +7,7 @@ from sciwms_connect import SCIWMS_REST_URL, USER, PASSWORD
 from sciwms_iso import add_dataset_to_sciwms, get_metadata
 
 
-SAVE_DIR = "/usgs/data0/iso/iso_records"
+SAVE_DIR = "/opt/docker/pycsw/force/iso_records"
 
 THREDDS_SERVERS = {
 'mvco': 'http://geoport-dev.whoi.edu/thredds/catalog/usgs/data0/mvco_ce/catalog.html',
@@ -22,7 +22,7 @@ THREDDS_SERVERS = {
 
 logger_name = 'thredds_crawler'
 logger = logging.getLogger(logger_name)
-fh = logging.handlers.RotatingFileHandler('/usgs/data0/iso/logs/iso_harvest.log', maxBytes=1024*1024*10, backupCount=5)
+fh = logging.handlers.RotatingFileHandler('/opt/docker/harvest/logs/iso_harvest.log', maxBytes=1024*1024*10, backupCount=5)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -41,9 +41,11 @@ metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
                               skips=skips, select=select,
                               logger_name=None
                               )
+'''
 add_dataset_to_sciwms(rest_url=SCIWMS_REST_URL,
                       user=USER,
                       password=PASSWORD,
                       metadata_files=metadata_files,
                       logger_name=None
                       )
+'''
