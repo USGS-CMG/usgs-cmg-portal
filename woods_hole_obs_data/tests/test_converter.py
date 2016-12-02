@@ -22,15 +22,9 @@ from collect import main
 class ConverterTests(unittest.TestCase):
 
     def setUp(self):
-        self.output = os.path.join(os.path.dirname(__file__), 'testing_output')
-        self.download = os.path.join(os.path.dirname(__file__), 'testing_download')
+        self.output = os.path.join(os.path.dirname(__file__), 'cf_output')
+        self.download = os.path.join(os.path.dirname(__file__), 'raw_download')
         self.csv = os.path.join(os.path.dirname(__file__), '..', 'project_metadata.csv')
-
-    def tearDown(self):
-        try:
-            shutil.rmtree(self.output)
-        except OSError:
-            pass
 
     def download_and_process(self, project, ncfile):
         downloaded_file = os.path.join(self.download, project, ncfile)

@@ -3,3 +3,7 @@ cf16/*
 axiom/*
 temp/*
 download/*
+
+*.nc
+*.pyc
+*.log
