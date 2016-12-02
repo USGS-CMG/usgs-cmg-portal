@@ -30,15 +30,8 @@ before_install:
 install:
   # Customise the testing environment
   # ---------------------------------
-  # woods_hole_obs_data
-  - conda install -c conda-forge --file woods_hole_obs_data/requirements.txt
-
-  # usgs_rapid_release_gauges
-  - conda install -c conda-forge --file usgs_rapid_release_gauges/requirements.txt
-
-  # testing
-  - conda install -c conda-forge pytest
-
+  # requirements
+  - conda install -c conda-forge pytest --file woods_hole_obs_data/requirements.txt --file usgs_rapid_release_gauges/requirements.txt --file santa_cruz_obs_data/requirements.txt
   - conda list --export
 
 script: py.test -s -rxs -v
