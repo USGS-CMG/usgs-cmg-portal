@@ -8,3 +8,4 @@ pynco
 pytest
 coloredlogs
 compliance-checker
+shapely
