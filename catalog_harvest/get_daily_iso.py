@@ -4,7 +4,7 @@ import logging.handlers
 from thredds_crawler.crawl import Crawl
 
 #from sciwms_connect import SCIWMS_REST_URL, USER, PASSWORD
-#from sciwms_iso import add_dataset_to_sciwms, get_metadata
+from sciwms_iso import add_dataset_to_sciwms, get_metadata
 
 
 logger_name = 'thredds_crawler'
