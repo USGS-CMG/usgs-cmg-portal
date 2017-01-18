@@ -3,7 +3,7 @@ Created on Jul 28, 2015
 
 @author: ayan
 '''
-from urllib.parse import urlparse
+from urlparse import urlparse
 
 from lxml import etree
 
