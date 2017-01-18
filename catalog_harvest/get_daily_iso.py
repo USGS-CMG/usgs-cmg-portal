@@ -24,8 +24,8 @@ SAVE_DIR="/opt/docker/pycsw/force/iso_records"
 
 THREDDS_SERVERS = {
     "coawst":   "http://geoport-dev.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.html",
-    "estofs_wh": "http://geoport-dev.whoi.edu/thredds/estofs_agg.html"
-}
+    "estofs_wh": "http://geoport-dev.whoi.edu/thredds/estofs_agg.html",
+    "useast":  "http://omgsrv1.meas.ncsu.edu:8080/thredds/catalog/fmrc/us_east/catalog.html"}
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
                               save_dir=SAVE_DIR,
