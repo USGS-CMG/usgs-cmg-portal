@@ -31,7 +31,7 @@ coloredlogs.install(level=logging.DEBUG)
 logger.setLevel(logging.DEBUG)
 
 # Log to a file
-df = logging.FileHandler('errors.log', mode='w', encoding='utf-8')
+df = logging.FileHandler('cf_errors.log', mode='w', encoding='utf-8')
 df.setLevel(logging.ERROR)
 df.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
 logger.addHandler(df)
