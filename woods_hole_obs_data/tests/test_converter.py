@@ -35,7 +35,7 @@ class ConverterTests(unittest.TestCase):
         assert os.path.isfile(output_file)
         return output_file
 
-    def test_timeseries(self):
+    def test_timeseries_basic(self):
         project = 'BUZZ_BAY'
         ncfile = '2881-A.cdf'
         output_file = self.download_and_process(project, ncfile)
@@ -56,6 +56,9 @@ class ConverterTests(unittest.TestCase):
             assert np.isclose(nc.variables['z'][:], -9.0)
 
             assert 'z' not in nc.variables['u_1205'].dimensions
+
+            assert nc.title == "USGS-CMG time-series data: BUZZ_BAY - 288 - 2881-A"
+            assert nc.summary == "USGS-CMG time-series data from the Currents and Sediment Transport in Buzzards Bay project, mooring 288 and package 2881-A. Investigation of the near-bottom circulation in Buzzards Bay and consequent transport of fine-grained sediments that may be contaminated with PCBs from inner New Bedford Harbor."
 
     def test_timeseries_4_digit_mooring(self):
         project = 'FI14'

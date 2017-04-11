@@ -498,15 +498,25 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
                 file_global_attributes.update(global_attributes)
                 file_global_attributes['id'] = feature_name
-                file_global_attributes['title'] = '{0} - {1}'.format(project_name, mooring_id)
-                file_global_attributes['description'] = '{0} - {1} - {2}'.format(project_name, mooring_id, os.path.basename(down_file))
                 file_global_attributes['MOORING'] = mooring_id
                 file_global_attributes['original_filename'] = fname
                 file_global_attributes['original_folder'] = project_name
+
+                no_override = ['id', 'MOORING', 'original_filename', 'original_folder', 'catalog_xml', 'project_name']
                 if project_name in project_metadata:
                     for k, v in project_metadata[project_name].items():
-                        if v and k.lower() not in ['id', 'title', 'catalog_xml', 'project_name']:
+                        if v and k.lower() not in no_override:
                             file_global_attributes[k] = v
+
+                if 'summary' in file_global_attributes:
+                    # Save the original summary
+                    file_global_attributes['WHOI_Buoy_Group_summary'] = file_global_attributes['summary']
+
+                project_title = file_global_attributes.get('project_title', project_name).strip()
+                project_summary = file_global_attributes.get('project_summary', '').strip()
+
+                file_global_attributes['title'] = 'USGS-CMG time-series data: {0} - {1} - {2}'.format(project_name, mooring_id, feature_name)
+                file_global_attributes['summary'] = 'USGS-CMG time-series data from the {} project, mooring {} and package {}. {}'.format(project_title, mooring_id, feature_name, project_summary).strip()
 
                 times  = nc.variables.get('time')[:]
 
