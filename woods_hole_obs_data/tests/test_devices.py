@@ -88,7 +88,7 @@ class DeviceTests(unittest.TestCase):
 
         with nc4.Dataset(output_files[0]) as nc:
             assert nc.original_folder == project
-            assert nc.original_filename == '7031adc-a.nc'  # The first file with 'u' in it
+            assert nc.original_filename == ncfiles[0]
             assert nc.MOORING == feature
             assert nc.id == '{}_{}'.format(project.lower(), feature)
             assert 'sea_water_temperature' in nc.variables
@@ -103,3 +103,22 @@ class DeviceTests(unittest.TestCase):
 
             assert 'time' in nc.variables['sea_water_temperature'].dimensions
             assert 'z' not in nc.variables['sea_water_temperature'].dimensions
+
+    def test_depth_difference(self):
+        project = 'PV_SHELF07'
+        ncfiles = ['8446advs-cal.nc']
+        variables = ['VSTD_4098']
+        feature = 844
+        output_files = self.download_and_process(project, ncfiles, feature, variables)
+
+        assert len(output_files) == 1
+
+        with nc4.Dataset(output_files[0]) as nc:
+            assert nc.original_folder == project
+            assert nc.original_filename == ncfiles[0]
+            assert nc.MOORING == feature
+            assert nc.id == '{}_{}'.format(project.lower(), feature)
+            assert nc.variables['height'].size == 1
+            # Make sure it was sorted and converted to positive "down" (from "up")
+            assert nc.variables['height'].positive == 'down'
+            assert np.isclose(nc.variables['height'][0], 64.77026)
