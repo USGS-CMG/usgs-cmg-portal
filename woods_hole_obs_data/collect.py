@@ -291,20 +291,20 @@ def normalize_epic_codes(netcdf_file, original_filename):
 
             if hasattr(nc_var, "epic_code") and nc_var.epic_code:
                 try:
-                    int(nc_var.epic_code)
+                    epic_code = int(nc_var.epic_code)
                 except ValueError:
                     logger.debug("No EPIC code specified on {0}".format(v))
                 else:
 
                     # Specialized cases for generic EPIC codes
-                    if nc_var.epic_code in special_map:
-                        attribs = special_map.get(int(nc_var.epic_code))(nc_var, original_filename)
+                    if epic_code in special_map:
+                        attribs = special_map.get(epic_code)(nc_var, original_filename)
                     else:
-                        attribs = epic2cf.mapping.get(int(nc_var.epic_code))
+                        attribs = epic2cf.mapping.get(epic_code)
 
                     # Special case for 'Onset weather stations'.
                     # https://github.com/USGS-CMG/usgs-cmg-portal/issues/69
-                    if int(nc_var.epic_code) in [905, 908] and 'hml' in netcdf_file.lower():
+                    if epic_code in [905, 908] and 'hml' in netcdf_file.lower():
                         attribs.standard_name = 'surface_downwelling_photosynthetic_radiative_flux_in_air'
 
                     if attribs is not None and attribs.standard_name is not None:
@@ -314,10 +314,11 @@ def normalize_epic_codes(netcdf_file, original_filename):
                         nc_var.standard_name = attribs.standard_name
                         nc_var.long_name     = attribs.long_name
                         nc_var.units         = attribs.cf_units
+                        nc_var.epic_code     = epic_code  # Set it again to be sure it is an int
                         if attribs.cell_methods is not None:
                             nc_var.cell_methods = attribs.cell_methods
                     else:
-                        logger.debug("Could not find CF mapping for EPIC code {!s}".format(nc_var.epic_code))
+                        logger.debug("Could not find CF mapping for EPIC code {!s}".format(epic_code))
 
 
 def normalize_vectors(netcdf_file):
