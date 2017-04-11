@@ -426,7 +426,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
     for down_file in sorted(downloaded_files):
 
-        _, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
+        temp_fd, temp_file = tempfile.mkstemp(prefix='cmg_collector', suffix='nc')
         try:
 
             if filesubset is not None:
@@ -672,6 +672,16 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
             logger.exception("Error. Skipping {0}.".format(down_file))
             continue
         finally:
+            try:
+                for df in depth_files:
+                    del df
+            except NameError:
+                pass
+            try:
+                del ts
+            except NameError:
+                pass
+            os.close(temp_fd)
             if os.path.isfile(temp_file):
                 os.remove(temp_file)
 
