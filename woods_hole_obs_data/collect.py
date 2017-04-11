@@ -44,11 +44,24 @@ pyaxiom_log = logging.getLogger("pyaxiom").setLevel(logging.ERROR)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
+
 # Special case EPIC mapping for generic EPIC codes that are used
 # EG '20' can be  Air Temperature or Water Temperature.
+def correct_temperature(var, filename):
+    # https://github.com/USGS-CMG/usgs-cmg-portal/issues/170#issuecomment-189485296
+    for x in ['met', 'hlm', 'alm']:
+        if x in filename:
+            return epic2cf.get(21)
+    return epic2cf.get(28)
+
+
+def correct_backscatter(var, filename):
+    return DotDict(standard_name='backscatter_intensity', long_name='Backscatter Intensity', units='v', convert=lambda x: x, cf_units='v', cell_methods=None)
+
+
 special_map = {
-    20   : lambda y: epic2cf.mapping.get(32) if hasattr(y, 'sensor_depth') and y.sensor_depth > 0 else epic2cf.mapping.get(21),
-    56   : lambda x: DotDict(standard_name='backscatter_intensity', long_name='Backscatter Intensity', units='v', convert=lambda x: x, cf_units='v', cell_methods=None)
+    20   : correct_temperature,
+    56   : correct_backscatter,
 }
 
 variable_name_overrides = {
@@ -247,7 +260,7 @@ def download(folder, project_metadata, filesubset, since):
     return saved_files
 
 
-def normalize_epic_codes(netcdf_file):
+def normalize_epic_codes(netcdf_file, original_filename):
     with EnhancedDataset(netcdf_file, 'a') as nc:
         for v in nc.variables:
             nc_var = nc.variables.get(v)
@@ -285,7 +298,7 @@ def normalize_epic_codes(netcdf_file):
 
                     # Specialized cases for generic EPIC codes
                     if nc_var.epic_code in special_map:
-                        attribs = special_map.get(int(nc_var.epic_code))(nc_var)
+                        attribs = special_map.get(int(nc_var.epic_code))(nc_var, original_filename)
                     else:
                         attribs = epic2cf.mapping.get(int(nc_var.epic_code))
 
@@ -439,7 +452,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 logger.error("Dates out of range. Skipping {0}.".format(down_file))
                 continue
 
-            normalize_epic_codes(temp_file)
+            normalize_epic_codes(temp_file, down_file)
             normalize_vectors(temp_file)
             normalize_units(temp_file)
 
