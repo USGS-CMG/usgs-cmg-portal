@@ -9,3 +9,4 @@ pytz
 coloredlogs
 libnetcdf
 pygc
+pytest
