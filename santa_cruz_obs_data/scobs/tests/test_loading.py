@@ -1,9 +1,10 @@
 #!python
 # coding=utf-8
 import os
+import sys
+import pytest
 import shutil
 import unittest
-import tempfile
 from os.path import join as pjoin
 from os.path import dirname as dname
 from os.path import abspath as apath
@@ -16,6 +17,9 @@ logger = logging.getLogger(__name__)
 coloredlogs.install(level='DEBUG')
 
 
+@pytest.mark.skipif(sys.version_info.major < 3,
+                    reason="requires python3")
+@pytest.mark.skip(reason="These tests are only experimental")
 class TestLoad(unittest.TestCase):
 
     def setup_method(self, method):

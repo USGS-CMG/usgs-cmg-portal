@@ -11,19 +11,31 @@ logger = logging.getLogger(__name__)
 
 IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 
-# Special case EPIC mapping for generic EPIC codes that are used
-special_map = {
-    # '20' can be  Air Temperature or Water Temperature.
-    20 : lambda y: epic2cf.mapping.get(32) if hasattr(y, 'sensor_depth') and y.sensor_depth > 0 else epic2cf.mapping.get(21),
 
-    56 : lambda x: SimpleNamespace(
+# Special case EPIC mapping for generic EPIC codes that are used
+# EG '20' can be  Air Temperature or Water Temperature.
+def correct_temperature(var, filename):
+    # https://github.com/USGS-CMG/usgs-cmg-portal/issues/170#issuecomment-189485296
+    for x in ['met', 'hlm', 'alm', 'hwlb']:
+        if x in filename:
+            return epic2cf.mapping.get(21)
+    return epic2cf.mapping.get(28)
+
+
+def correct_backscatter(var, filename):
+    return SimpleNamespace(
         standard_name='backscatter_intensity',
         long_name='Backscatter Intensity',
         units='v',
         convert=lambda x: x,
         cf_units='v',
         cell_methods=None
-    ),
+    )
+
+
+special_map = {
+    20   : correct_temperature,
+    56   : correct_backscatter,
 }
 
 variable_name_overrides = {

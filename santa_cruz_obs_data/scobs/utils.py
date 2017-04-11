@@ -267,7 +267,7 @@ def normalize_epic_codes(netcdf_file):
 
                     # Specialized cases for generic EPIC codes
                     if nc_var.epic_code in special_map:
-                        attribs = special_map.get(int(nc_var.epic_code))(nc_var)
+                        attribs = special_map.get(int(nc_var.epic_code))(nc_var, netcdf_file)
                     else:
                         attribs = epic2cf.mapping.get(int(nc_var.epic_code))
 
