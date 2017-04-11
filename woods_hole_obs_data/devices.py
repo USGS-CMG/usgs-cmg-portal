@@ -15,7 +15,6 @@ from thredds_crawler.crawl import Crawl
 
 from pyaxiom.netcdf.sensors.timeseries import TimeSeries, get_dataframe_from_variable
 from pyaxiom.netcdf.dataset import EnhancedDataset
-from pyaxiom.utils import urnify
 from pyaxiom.urn import IoosUrn
 
 import coloredlogs
@@ -257,6 +256,7 @@ def create_file(output, ncfile, varname, df):
 
         ts = TimeSeries.from_dataframe(df, output_directory, output_filename, latitude, longitude, station_urn, file_global_attributes, var.standard_name, variable_attributes, sensor_vertical_datum=vertical_datum, fillvalue=fillvalue, vertical_axis_name='height', vertical_positive='down')
         ts.add_instrument_variable(variable_name=var.standard_name)
+        del ts
 
 
 if __name__ == "__main__":
