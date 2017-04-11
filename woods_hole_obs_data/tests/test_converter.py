@@ -59,6 +59,8 @@ class ConverterTests(unittest.TestCase):
 
             assert nc.title == "USGS-CMG time-series data: BUZZ_BAY - 288 - 2881-A"
             assert nc.summary == "USGS-CMG time-series data from the Currents and Sediment Transport in Buzzards Bay project, mooring 288 and package 2881-A. Investigation of the near-bottom circulation in Buzzards Bay and consequent transport of fine-grained sediments that may be contaminated with PCBs from inner New Bedford Harbor."
+            assert nc.cdm_data_type == "TimeSeries"
+            assert nc.cdm_timeseries_variables == "latitude,longitude,z,feature_type_instance"
 
     def test_timeseries_4_digit_mooring(self):
         project = 'FI14'

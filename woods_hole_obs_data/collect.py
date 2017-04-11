@@ -512,9 +512,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     # Save the original summary
                     file_global_attributes['WHOI_Buoy_Group_summary'] = file_global_attributes['summary']
 
+                # Better title/summary for discovery via catalogs
                 project_title = file_global_attributes.get('project_title', project_name).strip()
                 project_summary = file_global_attributes.get('project_summary', '').strip()
-
                 file_global_attributes['title'] = 'USGS-CMG time-series data: {0} - {1} - {2}'.format(project_name, mooring_id, feature_name)
                 file_global_attributes['summary'] = 'USGS-CMG time-series data from the {} project, mooring {} and package {}. {}'.format(project_title, mooring_id, feature_name, project_summary).strip()
 
@@ -550,6 +550,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                     platform_type = getattr(onc, 'platform_type', 'fixed').lower()
                     onc.variables['platform'].setncattr('type', platform_type)
                     onc.variables['platform'].setncattr('nodc_name', "FIXED PLATFORM, MOORINGS")
+                    # Add ERDDAP variables
+                    onc.cdm_data_type = "TimeSeries"
+                    onc.cdm_timeseries_variables = "latitude,longitude,z,feature_type_instance"
 
                 v = []
                 depth_files = []
