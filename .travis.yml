@@ -33,4 +33,4 @@ install:
   - conda install -c conda-forge pytest --file woods_hole_obs_data/requirements.txt --file usgs_rapid_release_gauges/requirements.txt --file santa_cruz_obs_data/requirements.txt
   - conda list --export
 
-script: py.test -s -rxs -v
+script: py.test -s -rxs -v --ignore=santa_cruz_obs_data
