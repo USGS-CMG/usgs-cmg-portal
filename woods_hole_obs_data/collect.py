@@ -49,7 +49,7 @@ IGNORABLE_CODES = location_codes + time_codes + generic_codes + voltage_codes
 # EG '20' can be  Air Temperature or Water Temperature.
 def correct_temperature(var, filename):
     # https://github.com/USGS-CMG/usgs-cmg-portal/issues/170#issuecomment-189485296
-    for x in ['met', 'hlm', 'alm']:
+    for x in ['met', 'hlm', 'alm', 'hwlb']:
         if x in filename:
             return epic2cf.mapping.get(21)
     return epic2cf.mapping.get(28)
