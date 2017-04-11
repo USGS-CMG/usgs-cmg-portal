@@ -51,8 +51,8 @@ def correct_temperature(var, filename):
     # https://github.com/USGS-CMG/usgs-cmg-portal/issues/170#issuecomment-189485296
     for x in ['met', 'hlm', 'alm']:
         if x in filename:
-            return epic2cf.get(21)
-    return epic2cf.get(28)
+            return epic2cf.mapping.get(21)
+    return epic2cf.mapping.get(28)
 
 
 def correct_backscatter(var, filename):
