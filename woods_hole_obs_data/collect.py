@@ -97,6 +97,8 @@ variable_name_overrides = {
                                                       original_units='w/milli-angstrom^2',
                                                       units='w/m^2',
                                                       convert=lambda x: x/1e13)),
+    'fDOMQSU'    : dict(epic_code=None, overrides=dict(standard_name='concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate',
+                                                      units='1')),
     'BPR_1301'  : dict(epic_code=1301),
     'WL_NAVD88' : dict(epic_code=18, overrides=dict(vertical_datum='NAVD88')),
     'CTDCON_4218': dict(epic_code=4218),
