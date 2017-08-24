@@ -8,4 +8,4 @@ A place to store code, discuss and track issues regarding the USGS Coastal and M
 
 For more information, including how to get your data connected, see the [USGS-CMG Portal Wiki](https://github.com/USGS-CMG/usgs-cmg-portal/wiki/Home)
 
-[wiki](../wiki)
+[wiki](../../wiki)
