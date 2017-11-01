@@ -15,8 +15,8 @@ THREDDS_SERVERS = {
 'bbleh-sandy': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/zdefne/catalog.html',
 'sandy-jcwarner': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/jcwarner/Sandy/catalog.html',
 'chinco': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/nganju/portal_runs/catalog.html',
-'hudson-sandy': 'http://clancy.whoi.edu/thredds/catalog/data1/dralston/hudson/sandy/catalog.html'
-'projects': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/Projects/catalog.html',
+'hudson-sandy': 'http://clancy.whoi.edu/thredds/catalog/data1/dralston/hudson/sandy/catalog.html',
+'projects': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/Projects/catalog.html'
 }
 
 
