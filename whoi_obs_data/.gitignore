@@ -1,0 +1,12 @@
+output/*
+cf16/*
+axiom/*
+temp/*
+download/*
+
+*.nc
+*.pyc
+*.log
+
+run_cfexps.sh
+run_devices.sh

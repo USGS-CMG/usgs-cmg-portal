@@ -1,0 +1,18 @@
+name: CONVERT-WH
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.5
+  - numpy
+  - netCDF4
+  - thredds_crawler>=1.2.0
+  - pandas
+  - requests
+  - epic2cf>=0.0.4
+  - pyaxiom>=1.2.0
+  - pytz
+  - coloredlogs
+  - libnetcdf
+  - pygc
+  - pytest
