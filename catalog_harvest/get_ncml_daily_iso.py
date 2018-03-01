@@ -10,12 +10,9 @@ from sciwms_iso import add_dataset_to_sciwms, get_metadata
 SAVE_DIR = "/opt/docker/pycsw/force/iso_records"
  
 THREDDS_SERVERS = {
-'mvco': 'http://geoport-dev.whoi.edu/thredds/catalog/usgs/data0/mvco_ce/catalog.html',
-'bbleh': 'http://geoport-dev.whoi.edu/thredds/catalog/usgs/data0/bbleh/catalog.html',
-'bbleh-sandy': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/zdefne/catalog.html',
-'sandy-jcwarner': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/jcwarner/Sandy/catalog.html',
-'chinco': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/nganju/portal_runs/catalog.html',
-'hudson-sandy': 'http://clancy.whoi.edu/thredds/catalog/data1/dralston/hudson/sandy/catalog.html',
+'zdefne-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/zdefne/catalog.html',
+'jcwarner-sandy-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/jcwarner/Sandy/catalog.html',
+'neil-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/nganju/portal_runs/catalog.html',
 'projects': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/Projects/catalog.html'
 }
 
