@@ -10,10 +10,10 @@ from sciwms_iso import add_dataset_to_sciwms, get_metadata
 SAVE_DIR = "/opt/docker/pycsw/force/iso_records"
  
 THREDDS_SERVERS = {
-'zdefne-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/zdefne/catalog.html',
-'jcwarner-sandy-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/jcwarner/Sandy/catalog.html',
-'nganju-portal': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/users/nganju/portal_runs/catalog.html',
-'projects': 'http://geoport-dev.whoi.edu/thredds/catalog/sand/usgs/Projects/catalog.html'
+'zdefne-portal': 'https://gamone.whoi.edu/thredds/catalog/sand/usgs/users/zdefne/catalog.html',
+'jcwarner-sandy-portal': 'https://gamone.whoi.edu/thredds/catalog/q',
+'nganju-portal': 'https://gamone.whoi.edu/thredds/catalog/sand/usgs/users/nganju/portal_runs/catalog.html',
+'projects': 'https://gamone.whoi.edu/thredds/catalog/sand/usgs/Projects/catalog.html'
 }
 
 
