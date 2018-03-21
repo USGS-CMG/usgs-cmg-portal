@@ -102,6 +102,8 @@ variable_name_overrides = {
     'BPR_1301'  : dict(epic_code=1301),
     'WL_NAVD88' : dict(epic_code=18, overrides=dict(vertical_datum='NAVD88')),
     'CTDCON_4218': dict(epic_code=4218),
+    'BP_915'     : dict(epic_code=915),
+    'BPR_915'    : dict(epic_code=915),
 }
 
 long_name_overrides = {
