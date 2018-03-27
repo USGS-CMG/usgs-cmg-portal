@@ -1,5 +1,5 @@
 numpy
-netCDF4
+netCDF4<=1.2.8
 thredds_crawler>=1.2.0
 pandas
 requests
@@ -10,3 +10,4 @@ coloredlogs
 libnetcdf
 pygc
 pytest
+cf_units
