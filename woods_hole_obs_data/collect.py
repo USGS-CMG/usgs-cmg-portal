@@ -275,6 +275,28 @@ def download(folder, project_metadata, filesubset, since):
     return saved_files
 
 
+def convert_attributes(ncvar, convert_function):
+
+    attrs = [
+        'valid_min',
+        'valid_max',
+        'valid_range',
+        'actual_min',
+        'actual_max',
+        'actual_range',
+        'minimum',
+        'maximum',
+    ]
+
+    vatts = { k : getattr(ncvar, k) for k in ncvar.ncattrs() }
+    for k, v in vatts.items():
+        if k in attrs:
+            attvalue = getattr(ncvar, k)
+            vs = ncvar.dtype.type(attvalue)
+            calc = convert_function(vs)
+            setattr(ncvar, k, calc)
+
+
 def normalize_epic_codes(netcdf_file, original_filename):
     with EnhancedDataset(netcdf_file, 'a') as nc:
         for v in nc.variables:
@@ -287,6 +309,7 @@ def normalize_epic_codes(netcdf_file, original_filename):
                 for k, d in overrides.items():
                     if k == 'convert':
                         nc_var[:] = d(nc_var[:])
+                        convert_attributes(nc_var, d)
                     elif k != 'original_units':
                         nc_var.setncattr(k, d)
 
@@ -301,6 +324,7 @@ def normalize_epic_codes(netcdf_file, original_filename):
                         for k, d in overrides.items():
                             if k == 'convert':
                                 nc_var[:] = d(nc_var[:])
+                                convert_attributes(nc_var, d)
                             elif k != 'original_units':
                                 nc_var.setncattr(k, d)
 
@@ -325,6 +349,7 @@ def normalize_epic_codes(netcdf_file, original_filename):
                     if attribs is not None and attribs.standard_name is not None:
                         # Convert data to CF units
                         nc_var[:] = attribs.convert(nc_var[:])
+                        convert_attributes(nc_var, attribs.convert)
                         # Set attributes
                         nc_var.standard_name = attribs.standard_name
                         nc_var.long_name     = attribs.long_name
@@ -383,13 +408,19 @@ def normalize_units(netcdf_file):
             nc_var = nc.variables.get(v)
             if hasattr(nc_var, 'units') and nc_var.units == "K":
                 # Convert kelvin to Celsius
-                nc_var[:] = nc_var[:] - 273.15
+                def d(x):
+                    return x - 273.15
+                nc_var[:] = d(nc_var[:])
                 nc_var.units = "degree_Celsius"
+                convert_attributes(nc_var, d)
             elif hasattr(nc_var, 'standard_name') and nc_var.standard_name == 'sea_surface_wave_from_direction':
                 # Convert "From" to "To" direction
-                nc_var[:] = (nc_var[:] + 180) % 360
+                def d(x):
+                    return (x + 180) % 360
+                nc_var[:] = d(nc_var[:])
                 nc_var.standard_name = 'sea_surface_wave_to_direction'
                 nc_var.long_name = "Wave Direction (to TN)"
+                convert_attributes(nc_var, d)
 
 
 def normalize_time(netcdf_file):
@@ -409,6 +440,37 @@ def normalize_time(netcdf_file):
         time.calendar       = "gregorian"
         time[:] = netCDF4.date2num(time_data, units=epoch_units).round()
         return time_data[0]
+
+
+def normalize_variable_attribute_types(netcdf_file):
+
+    attrs = [
+        'valid_min',
+        'valid_max',
+        'valid_range',
+        'actual_min',
+        'actual_max',
+        'actual_range',
+        'minimum',
+        'maximum',
+    ]
+
+    with EnhancedDataset(netcdf_file, 'a') as nc:
+        for ncvarname, ncvar in nc.variables.items():
+            vatts = { k : getattr(ncvar, k) for k in ncvar.ncattrs() }
+            for k, v in vatts.items():
+                if k in attrs:
+                    attvalue = getattr(ncvar, k)
+                    if isinstance(attvalue, np.ndarray):
+                        if attvalue.dtype.kind in ['U', 'S']:
+                            ncvar.delncattr(k)
+                            continue
+                    elif not attvalue or isinstance(attvalue, str):
+                        ncvar.delncattr(k)
+                        continue
+
+                    vs = ncvar.dtype.type(attvalue)
+                    setattr(ncvar, k, vs)
 
 
 def main(output, download_folder, do_download, projects, csv_metadata_file, filesubset=None, since=None):
@@ -468,6 +530,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 logger.error("Dates out of range. Skipping {0}.".format(down_file))
                 continue
 
+            normalize_variable_attribute_types(temp_file)
             normalize_epic_codes(temp_file, down_file)
             normalize_vectors(temp_file)
             normalize_units(temp_file)
@@ -626,7 +689,8 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                     logger.info("Combining '{}' with '{}' as '{}' (different variables at different depths but are the same parameter)".format(search_var, other, new_var_name))
 
                             values = np.ma.empty((times.size, len(depth_values)), dtype=old_var.dtype)
-                            values.fill_value = fillvalue
+                            values.fill_value = values.dtype.type(fillvalue)
+                            fillvalue = values.dtype.type(fillvalue)
                             values.mask = True
                             inconsistent = False
                             for nm, index in depth_indexes:
