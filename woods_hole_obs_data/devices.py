@@ -51,7 +51,7 @@ def download(folder, projects, filesubset, since):
     if projects:
         skips += ['^(?!{}).*^(?!.*\.(cdf|nc)).*$'.format('|'.join(projects))]
 
-    catalog = 'http://geoport.whoi.edu/thredds/catalog/usgs/data2/emontgomery/stellwagen/CF-1.6/catalog.html'
+    catalog = 'http://geoport.whoi.edu/thredds/dodsC/silt/usgs/Projects/stellwagen/CF-1.6/catalog.html'
 
     try:
         datasets = Crawl(catalog, select=['.*\.(cdf|nc)'], skip=skips, after=since).datasets
