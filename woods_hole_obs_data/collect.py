@@ -14,6 +14,7 @@ from datetime import datetime
 
 import pytz
 import epic2cf
+from cf_units import Unit
 from epic2cf.data import *
 import netCDF4
 import numpy as np
@@ -59,9 +60,22 @@ def correct_backscatter(var, filename):
     return DotDict(standard_name='backscatter_intensity', long_name='Backscatter Intensity', units='v', convert=lambda x: x, cf_units='v', cell_methods=None)
 
 
+def correct_airpressure(var, filename):
+    z = dict(
+        standard_name='air_pressure',
+        long_name='Air Pressure',
+        cf_units='Pa',
+        convert=lambda x: Unit(var.units.lower()).convert(x, Unit('Pa')),
+        units=var.units.lower(),
+        cell_methods=None
+    )
+    return DotDict(**z)
+
+
 special_map = {
     20   : correct_temperature,
     56   : correct_backscatter,
+    915  : correct_airpressure
 }
 
 variable_name_overrides = {
@@ -104,6 +118,7 @@ variable_name_overrides = {
     'CTDCON_4218': dict(epic_code=4218),
     'BP_915'     : dict(epic_code=915),
     'BPR_915'    : dict(epic_code=915),
+    'Baro'       : dict(epic_code=915),
 }
 
 long_name_overrides = {
@@ -157,11 +172,7 @@ long_name_overrides = {
     'rotor speed':                          dict(epic_code=4005),
     'compass':                              dict(epic_code=1401),
     'vane':                                 dict(epic_code=1402),
-    'barometric pressure':                  dict(epic_code=None, overrides=dict(standard_name='air_pressure',
-                                                                                long_name='Air Pressure',
-                                                                                original_units='PSI',
-                                                                                units='dbar',
-                                                                                convert=lambda x: x*0.6894757293)),
+    'barometric pressure':                  dict(epic_code=915)
 }
 
 global_attributes = {
