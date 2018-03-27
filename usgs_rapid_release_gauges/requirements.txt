@@ -1,6 +1,6 @@
 requests
 numpy
-netCDF4
+netCDF4<=1.2.8
 pyproj
 beautifulsoup4
 pandas

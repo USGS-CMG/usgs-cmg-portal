@@ -1,5 +1,5 @@
 numpy
-netCDF4
+netCDF4<=1.2.8
 epic2cf>=0.0.4
 pygc
 pyaxiom>=1.3.2

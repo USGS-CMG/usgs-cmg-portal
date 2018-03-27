@@ -30,7 +30,7 @@ install:
   # Customise the testing environment
   # ---------------------------------
   # requirements
-  - conda install -c conda-forge pytest --file woods_hole_obs_data/requirements.txt --file usgs_rapid_release_gauges/requirements.txt --file santa_cruz_obs_data/requirements.txt
+  - conda install -c conda-forge pytest `find . -name requirements\*.txt -printf "  --file=%p"`
   - conda list --export
 
 script: py.test -s -rxs -v --ignore=santa_cruz_obs_data
