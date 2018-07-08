@@ -1,0 +1,1 @@
+This folder is to store the metadata forthe GIS layers on the portal. The ScienceBase metadata is appended with a "CMG_Portal" keyword before copying under this folder. The files are then moved to 'gis' folder on the server. See [Procedure to add GIS layers to portal](https://github.com/USGS-CMG/usgs-cmg-portal/wiki/Procedure-to-add-GIS-layers-to-portal).
