@@ -57,7 +57,15 @@ def correct_temperature(var, filename):
 
 
 def correct_backscatter(var, filename):
-    return DotDict(standard_name='backscatter_intensity', long_name='Backscatter Intensity', units='v', convert=lambda x: x, cf_units='v', cell_methods=None)
+    z = dict(
+        standard_name='backscatter_intensity',
+        long_name='Backscatter Intensity',
+        units='v',
+        convert=lambda x: x,
+        cf_units='v',
+        cell_methods=None
+    )
+    return DotDict(**z)
 
 
 def correct_airpressure(var, filename):
@@ -72,107 +80,153 @@ def correct_airpressure(var, filename):
     return DotDict(**z)
 
 
+def correct_waterpressure(var, filename):
+    if 'hwl-a' in filename and var.name in ['P_1']:
+        return correct_airpressure(var, filename)
+    else:
+        return epic2cf.mapping.get(1)
+
+
 special_map = {
+    1    : correct_waterpressure,
     20   : correct_temperature,
     56   : correct_backscatter,
     915  : correct_airpressure
 }
 
 variable_name_overrides = {
-    'w_1204min' : dict(epic_code=1204, overrides=dict(cell_methods='time: minimum')),
-    'u_1205min' : dict(epic_code=1205, overrides=dict(cell_methods='time: minimum')),
-    'v_1206min' : dict(epic_code=1206, overrides=dict(cell_methods='time: minimum')),
-    'w_1204max' : dict(epic_code=1204, overrides=dict(cell_methods='time: maximum')),
-    'u_1205max' : dict(epic_code=1205, overrides=dict(cell_methods='time: maximum')),
-    'v_1206max' : dict(epic_code=1206, overrides=dict(cell_methods='time: maximum')),
-    'WG_402'    : dict(epic_code=402),
-    'Turb'      : dict(epic_code=980),
-    'Press'     : dict(epic_code=1301),
-    'vspd_1'    : dict(epic_code=300),
-    'vdir_1'    : dict(epic_code=310),
-    'vspd_2'    : dict(epic_code=300),
-    'vdir_2'    : dict(epic_code=310),
-    'u_1'       : dict(epic_code=1205),
-    'v_1'       : dict(epic_code=1206),
-    'w_1'       : dict(epic_code=1204),
-    'u_2'       : dict(epic_code=1205),
-    'v_2'       : dict(epic_code=1206),
-    'w_2'       : dict(epic_code=1204),
-    'bearing'   : dict(epic_code=1411),
-    'rotor'     : dict(epic_code=4006),
-    'DO'        : dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_oxygen_in_sea_water',
-                                                      convert=lambda x: x / 1000.,
-                                                      units='kg/m^3')),
-    'BGAPE'     : dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_phycoerythrin_expressed_as_chlorophyll_in_sea_water',
-                                                      units='kg/m^3',
-                                                      convert=lambda x: x / 1000000.)),
-    'turbidity' : dict(epic_code=980),
-    'Qs_133'    : dict(epic_code=None, overrides=dict(standard_name='net_downward_shortwave_flux_in_air',
-                                                      original_units='w/milli-angstrom^2',
-                                                      units='w/m^2',
-                                                      convert=lambda x: x / 1e13)),
-    'fDOMQSU'    : dict(epic_code=None, overrides=dict(standard_name='concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate',
-                                                       units='1')),
-    'BPR_1301'  : dict(epic_code=1301),
-    'WL_NAVD88' : dict(epic_code=18, overrides=dict(vertical_datum='NAVD88')),
-    'CTDCON_4218': dict(epic_code=4218),
-    'BP_915'     : dict(epic_code=915),
-    'BPR_915'    : dict(epic_code=915),
-    'Baro'       : dict(epic_code=915),
+    'Baro':         dict(epic_code=915),
+    'bearing':      dict(epic_code=1411),
+    'BGAPE':        dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='mass_concentration_of_phycoerythrin_expressed_as_chlorophyll_in_sea_water',
+                            convert=lambda x: x / 1000000.,
+                            units='kg/m^3'
+                        )
+                    ),
+    'BP_915':       dict(epic_code=915),
+    'BPR_1301':     dict(epic_code=1301),
+    'BPR_915':      dict(epic_code=915),
+    'CTDCON_4218':  dict(epic_code=4218),
+    'DO':           dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='mass_concentration_of_oxygen_in_sea_water',
+                            convert=lambda x: x / 1000.,
+                            units='kg/m^3'
+                        )
+                    ),
+    'dwvdir':       dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='sea_surface_wave_from_direction_at_variance_spectral_density_maximum',
+                            convert=lambda x: x,
+                            units='degree'
+                         )
+                    ),
+    'fDOMQSU':      dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate',
+                            units='1'
+                         )
+                    ),
+    'mwh_4064':     dict(epic_code=4064),
+    'Press':        dict(epic_code=1301),
+    'Qs_133':       dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='net_downward_shortwave_flux_in_air',
+                            original_units='w/milli-angstrom^2',
+                            convert=lambda x: x / 1e13,
+                            units='w/m^2'
+                         )
+                    ),
+    'rotor':        dict(epic_code=4006),
+    'Turb':         dict(epic_code=980),
+    'turbidity':    dict(epic_code=980),
+    'u_1':          dict(epic_code=1205),
+    'u_1205max':    dict(epic_code=1205, overrides=dict(cell_methods='time: maximum')),
+    'u_1205min':    dict(epic_code=1205, overrides=dict(cell_methods='time: minimum')),
+    'u_2':          dict(epic_code=1205),
+    'v_1':          dict(epic_code=1206),
+    'v_1206max':    dict(epic_code=1206, overrides=dict(cell_methods='time: maximum')),
+    'v_1206min':    dict(epic_code=1206, overrides=dict(cell_methods='time: minimum')),
+    'v_2':          dict(epic_code=1206),
+    'vdir_1':       dict(epic_code=310),
+    'vdir_2':       dict(epic_code=310),
+    'vspd_1':       dict(epic_code=300),
+    'vspd_2':       dict(epic_code=300),
+    'w_1':          dict(epic_code=1204),
+    'w_1204max':    dict(epic_code=1204, overrides=dict(cell_methods='time: maximum')),
+    'w_1204min':    dict(epic_code=1204, overrides=dict(cell_methods='time: minimum')),
+    'w_2':          dict(epic_code=1204),
+    'WG_402':       dict(epic_code=402),
+    'wh_4061':      dict(epic_code=4061),
+    'WL_NAVD88':    dict(epic_code=18, overrides=dict(vertical_datum='NAVD88')),
+    'wp_40610':     dict(epic_code=4060),
+    'wp_peak':      dict(epic_code=None,
+                         overrides=dict(
+                            standard_name='sea_surface_wave_period_at_variance_spectral_density_maximum',
+                            convert=lambda x: x,
+                            units='s'
+                         )
+                    ),
+    'wvdir':        dict(epic_code=4062),
 }
 
 long_name_overrides = {
-    'salinity 1':                           dict(epic_code=40),
-    'salinity 2':                           dict(epic_code=40),
-    'salinity 2 q':                         dict(epic_code=40),
-    'ctd salinity, pss-78':                 dict(epic_code=4214),
-    'salinity':                             dict(epic_code=40),
-    'salinity (ppt)':                       dict(epic_code=40),
-    'salinity (psu)':                       dict(epic_code=41),
-    'northward velocity':                   dict(epic_code=1206),
-    'north':                                dict(epic_code=1206),
-    'mean northward velocity':              dict(epic_code=1206),
-    'north lp':                             dict(epic_code=1206),
-    'eastward velocity':                    dict(epic_code=1205),
-    'east':                                 dict(epic_code=1205),
-    'mean eastward velocity':               dict(epic_code=1205),
-    'east lp':                              dict(epic_code=1205),
-    'instrument transducer temp.':          dict(epic_code=1211),
-    'temperature (c)':                      dict(epic_code=32),
-    'fr temp':                              dict(epic_code=32),
-    'adp transducer temp.':                 dict(epic_code=1211),
     'adcp transducer temp.':                dict(epic_code=1211),
-    'transducer temp.':                     dict(epic_code=1211),
-    'temp 1':                               dict(epic_code=32),
-    'temp 2':                               dict(epic_code=32),
-    'temperature':                          dict(epic_code=32),
-    'internal temperature':                 dict(epic_code=32),
-    'frtemp':                               dict(epic_code=32),
-    'temp 2 q':                             dict(epic_code=32),
-    'temp':                                 dict(epic_code=32),
-    'temp lp':                              dict(epic_code=32),
-    'sea surface temperature (degrees C)':  dict(epic_code=36),
-    'conductivity':                         dict(epic_code=50),
+    'adp transducer temp.':                 dict(epic_code=1211),
     'attenuation':                          dict(epic_code=55),
-    'sigma theta':                          dict(epic_code=70),
-    'psdev':                                dict(epic_code=850),
-    'pressure':                             dict(epic_code=9),
-    'sp cond':                              dict(epic_code=48),
-    'dissolved oxygen saturation (mg/l)':   dict(epic_code=None, overrides=dict(standard_name='mass_concentration_of_oxygen_in_sea_water',
-                                                                                original_units='mg/l',
-                                                                                units='kg/m^3',
-                                                                                convert=lambda x: x / 1000.)),
-    'raw aanderaa dissolved oxygen concentration (um/kg)': dict(epic_code=65),
-    'standard deviation of inst pitch':     dict(epic_code=1219),
-    'standard deviation of inst roll':      dict(epic_code=1220),
-    'cond':                                 dict(epic_code=51),
+    'barometric pressure':                  dict(epic_code=915),
+    'compass':                              dict(epic_code=1401),
     'cond 1':                               dict(epic_code=51),
     'cond 2':                               dict(epic_code=51),
+    'cond':                                 dict(epic_code=51),
+    'conductivity':                         dict(epic_code=50),
+    'ctd salinity, pss-78':                 dict(epic_code=4214),
+    'dissolved oxygen saturation (mg/l)':   dict(epic_code=None,
+                                                 overrides=dict(
+                                                    standard_name='mass_concentration_of_oxygen_in_sea_water',
+                                                    original_units='mg/l',
+                                                    units='kg/m^3',
+                                                    convert=lambda x: x / 1000.
+                                                )
+                                            ),
+    'east lp':                              dict(epic_code=1205),
+    'east':                                 dict(epic_code=1205),
+    'eastward velocity':                    dict(epic_code=1205),
+    'fr temp':                              dict(epic_code=32),
+    'frtemp':                               dict(epic_code=32),
+    'instrument transducer temp.':          dict(epic_code=1211),
+    'internal temperature':                 dict(epic_code=32),
+    'mean eastward velocity':               dict(epic_code=1205),
+    'mean northward velocity':              dict(epic_code=1206),
+    'north lp':                             dict(epic_code=1206),
+    'north':                                dict(epic_code=1206),
+    'northward velocity':                   dict(epic_code=1206),
+    'pressure':                             dict(epic_code=9),
+    'psdev':                                dict(epic_code=850),
+    'raw aanderaa dissolved oxygen concentration (um/kg)': dict(epic_code=65),
     'rotor count':                          dict(epic_code=4006),
     'rotor speed':                          dict(epic_code=4005),
-    'compass':                              dict(epic_code=1401),
+    'salinity (ppt)':                       dict(epic_code=40),
+    'salinity (psu)':                       dict(epic_code=41),
+    'salinity 1':                           dict(epic_code=40),
+    'salinity 2 q':                         dict(epic_code=40),
+    'salinity 2':                           dict(epic_code=40),
+    'salinity':                             dict(epic_code=40),
+    'sea surface temperature (degrees C)':  dict(epic_code=36),
+    'sigma theta':                          dict(epic_code=70),
+    'sp cond':                              dict(epic_code=48),
+    'standard deviation of inst pitch':     dict(epic_code=1219),
+    'standard deviation of inst roll':      dict(epic_code=1220),
+    'temp 1':                               dict(epic_code=32),
+    'temp 2 q':                             dict(epic_code=32),
+    'temp 2':                               dict(epic_code=32),
+    'temp lp':                              dict(epic_code=32),
+    'temp':                                 dict(epic_code=32),
+    'temperature (c)':                      dict(epic_code=32),
+    'temperature':                          dict(epic_code=32),
+    'transducer temp.':                     dict(epic_code=1211),
     'vane':                                 dict(epic_code=1402),
-    'barometric pressure':                  dict(epic_code=915)
 }
 
 global_attributes = {
@@ -205,13 +259,17 @@ def download(folder, project_metadata, filesubset, since):
     total_datasets = []
     skips = Crawl.SKIPS + ['.*OTHER.*', '.*ancillary.*', '.*OLD_VERSIONS.*']
 
+    # http://regexr.com/3t6p6
+    select_regex = r'([0-9]+\..*|.*(-(a|A)|(ls|[0-9]s|isus|[aAB]s|sgs|aqds|vs|pcs|d|tide|p)-cal){1}(?!lp)(?!1(h|H))\.*.*)'
+
     try:
         for k, v in project_metadata.items():
-            # http://regexr.com/3conn
-            datasets = Crawl(v['catalog_xml'],
-                             select=['([0-9]+\..*|.*(-(a|A)|(ls|[0-9]s|isus|[aAB]s|sgs|aqds|vs|pcs|d|tide)-cal){1}(?!lp)(?!1(h|H))\.*.*)'],
-                             skip=skips,
-                             after=since).datasets
+            datasets = Crawl(
+                v['catalog_xml'],
+                select=[select_regex],
+                skip=skips,
+                after=since
+            ).datasets
             logger.info("Found {0} datasets in {1}!".format(len(datasets), k))
             total_datasets += datasets
         logger.info("Found {0} TOTAL datasets!".format(len(total_datasets)))

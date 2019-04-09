@@ -48,13 +48,14 @@ def download(folder, projects, filesubset, since):
 
     # Use thredds_crawler to find DAP endpoints of the CF-1.6 data.
     skips = Crawl.SKIPS
+
     if projects:
-        skips += ['^(?!{}).*^(?!.*\.(cdf|nc)).*$'.format('|'.join(projects))]
+        skips += [r'^(?!{}).*^(?!.*\.(cdf|nc)).*$'.format('|'.join(projects))]
 
     catalog = 'http://geoport.whoi.edu/thredds/dodsC/silt/usgs/Projects/stellwagen/CF-1.6/catalog.html'
 
     try:
-        datasets = Crawl(catalog, select=['.*\.(cdf|nc)'], skip=skips, after=since).datasets
+        datasets = Crawl(catalog, select=[r'.*\.(cdf|nc)'], skip=skips, after=since).datasets
         logger.info("Found {0} TOTAL datasets!".format(len(datasets)))
     except KeyboardInterrupt:
         logger.info("Breaking out of crawling loop.")
