@@ -1,9 +1,9 @@
 numpy
-netCDF4<=1.2.8
+netCDF4>=1.4.0
 thredds_crawler>=1.2.0
 pandas
 requests
-epic2cf>=0.0.4
+epic2cf>=0.0.5
 pyaxiom>=1.4.5
 pytz
 coloredlogs

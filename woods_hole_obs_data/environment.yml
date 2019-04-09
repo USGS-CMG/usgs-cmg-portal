@@ -5,11 +5,11 @@ channels:
 dependencies:
   - python=3.5
   - numpy
-  - netCDF4
+  - netCDF4>=1.4.8
   - thredds_crawler>=1.2.0
   - pandas
   - requests
-  - epic2cf>=0.0.4
+  - epic2cf>=0.0.5
   - pyaxiom>=1.2.0
   - pytz
   - coloredlogs
