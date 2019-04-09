@@ -522,7 +522,7 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
             # Cleanup to CF-1.6
             try:
-                first_time = normalize_time(temp_file)
+                normalize_time(temp_file)
             except (TypeError, ValueError, IndexError):
                 logger.exception("Could not normalize the time variable. Skipping {0}.".format(down_file))
                 continue
@@ -542,21 +542,6 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
 
             fname = os.path.basename(down_file)
             feature_name, file_ext = os.path.splitext(os.path.basename(down_file))
-            try:
-                if int(fname[0]) <= 9 and int(fname[0]) >= 2:
-                    # 1.) everything with first char between 2-9 is 3-digit
-                    mooring_id = int(fname[0:3])
-                elif int(fname[0]) == 1:
-                    # 2.) if MOORING starts with 1, and data is newer than 2014, it's 4 digit, otherwise 3 digit.
-                    if first_time > datetime(2014, 1, 1, 0):
-                        # 4 digit if after Jan 1, 2014
-                        mooring_id = int(fname[0:4])
-                    else:
-                        # 3 digit if before
-                        mooring_id = int(fname[0:3])
-            except ValueError:
-                logger.exception("Could not create a suitable station_id. Skipping {0}.".format(down_file))
-                continue
 
             file_name = os.path.basename(down_file)
             output_directory = os.path.join(output, project_name)
@@ -573,10 +558,16 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                 except TypeError:
                     logger.error("Could not find lat/lon variables. Skipping {0}.".format(down_file))
 
+                try:
+                    mooring_id = str(nc.MOORING)
+                    assert mooring_id
+                except (ValueError, AttributeError, AssertionError):
+                    logger.exception("Could not parse the MOORING global attribute. Skipping {0}.".format(down_file))
+                    continue
                 file_global_attributes = { k : getattr(nc, k) for k in nc.ncattrs() }
                 file_global_attributes.update(global_attributes)
                 file_global_attributes['id'] = feature_name
-                file_global_attributes['MOORING'] = mooring_id
+                file_global_attributes['MOORING'] = str(mooring_id)
                 file_global_attributes['original_filename'] = fname
                 file_global_attributes['original_folder'] = project_name
 
@@ -699,6 +690,9 @@ def main(output, download_folder, do_download, projects, csv_metadata_file, file
                                 except ValueError:
                                     inconsistent = True
                                     break
+                                except TypeError:
+                                    logger.error("Could not extract data. Skipping {0} at depth indexes {1}.".format(nm, index))
+                                    continue
 
                             # If we just have one index we want to use the original name
                             if len(depth_indexes) == 1:

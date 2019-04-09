@@ -51,7 +51,7 @@ class DeviceTests(unittest.TestCase):
         project = 'MBAY_LT'
         ncfiles = ['4501spd-a_d1.nc', '4501spd-a_d2.nc', '4501spd-a_d3.nc', '4501spd-a_d4.nc']
         variables = ['u_1205']
-        feature = 450
+        feature = '450'
         output_files = self.download_and_process(project, ncfiles, feature, variables)
 
         assert len(output_files) == 1
@@ -59,7 +59,7 @@ class DeviceTests(unittest.TestCase):
         with nc4.Dataset(output_files[0]) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == '4501spd-a_d3.nc'  # The first file with 'u' in it
-            assert nc.MOORING == feature
+            assert str(nc.MOORING) == feature
             assert nc.id == '{}_{}'.format(project.lower(), feature)
             assert 'eastward_sea_water_velocity' in nc.variables
             assert 'crs' in nc.variables
@@ -81,7 +81,7 @@ class DeviceTests(unittest.TestCase):
         project = 'EUROSTRATAFORM'
         ncfiles = ['7031adc-a.nc']
         variables = ['Tx_1211']
-        feature = 703
+        feature = '703'
         output_files = self.download_and_process(project, ncfiles, feature, variables)
 
         assert len(output_files) == 1
@@ -108,7 +108,7 @@ class DeviceTests(unittest.TestCase):
         project = 'PV_SHELF07'
         ncfiles = ['8446advs-cal.nc']
         variables = ['VSTD_4098']
-        feature = 844
+        feature = '844'
         output_files = self.download_and_process(project, ncfiles, feature, variables)
 
         assert len(output_files) == 1

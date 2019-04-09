@@ -43,7 +43,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 288
+            assert nc.MOORING == '288'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables        # ADCP variable
             assert 'latitude' in nc.variables
@@ -70,7 +70,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 1000
+            assert nc.MOORING == '1000'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'T_28' in nc.variables
             assert 'latitude' in nc.variables
@@ -92,7 +92,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 703
+            assert nc.MOORING == '703'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables
             assert 'latitude' in nc.variables
@@ -121,7 +121,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 703
+            assert nc.MOORING == '703'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables        # ADCP variable
             assert 'latitude' in nc.variables
@@ -148,7 +148,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 395
+            assert nc.MOORING == '395'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'temp' in nc.variables
             assert 'cond' in nc.variables
@@ -199,7 +199,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(z1_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 920
+            assert nc.MOORING == '920'
             assert nc.id == os.path.splitext(os.path.basename(z1_file))[0]
             assert 'ATTN1_55' in nc.variables
             assert 'tran1_4010' in nc.variables
@@ -212,7 +212,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(z2_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 920
+            assert nc.MOORING == '920'
             assert nc.id == os.path.splitext(os.path.basename(z2_file))[0]
             assert 'NEP2_56' in nc.variables
             assert 'Sed2_981' in nc.variables
@@ -225,7 +225,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(z3_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 920
+            assert nc.MOORING == '920'
             assert nc.id == os.path.splitext(os.path.basename(z3_file))[0]
             assert 'P_4023' in nc.variables
             assert 'SDP_850' in nc.variables
@@ -238,7 +238,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 920
+            assert nc.MOORING == '920'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'w_1204min' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
@@ -263,7 +263,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(z1_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 910
+            assert nc.MOORING == '910'
             assert nc.id == os.path.splitext(os.path.basename(z1_file))[0]
             assert 'Tx_1211' in nc.variables
             assert 'z' in nc.variables
@@ -275,7 +275,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(z2_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 910
+            assert nc.MOORING == '910'
             assert nc.id == os.path.splitext(os.path.basename(z2_file))[0]
             assert 'NEP2_56' in nc.variables
             # Make sure it was converted to positive "up" (from "down")
@@ -287,7 +287,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 910
+            assert nc.MOORING == '910'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'u_1205' in nc.variables
             assert 'ATTN1_55' in nc.variables
@@ -311,7 +311,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 926
+            assert nc.MOORING == '926'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'direction' in nc.variables
             assert 'direction' in nc.dimensions
@@ -331,7 +331,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 941
+            assert nc.MOORING == '941'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'bindist' in nc.variables
             assert 'z' not in nc.variables['bindist'].dimensions
@@ -345,7 +345,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 848
+            assert nc.MOORING == '848'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert 'CDF' in nc.variables
             assert 'time' in nc.variables['CDF'].dimensions
@@ -360,7 +360,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 844
+            assert nc.MOORING == '844'
             assert nc.id == os.path.splitext(ncfile)[0]
 
     def test_vector_conversion(self):
@@ -371,7 +371,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 480
+            assert nc.MOORING == '480'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert nc.variables['platform'].type == 'fixed'
             assert 'CS_300' in nc.variables
@@ -388,7 +388,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 507
+            assert nc.MOORING == '507'
             assert nc.id == os.path.splitext(ncfile)[0]
             assert nc.variables['platform'].type == 'fixed'
             assert 'CS_300' in nc.variables
@@ -405,7 +405,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 904
+            assert nc.MOORING == '904'
             assert nc.id == os.path.splitext(ncfile)[0]
 
     def test_vertical_direction(self):
@@ -416,7 +416,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 911
+            assert nc.MOORING == '911'
             assert nc.id == os.path.splitext(ncfile)[0]
 
             # Data under water should be negative (positive "up")
@@ -431,7 +431,7 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 423
+            assert nc.MOORING == '423'
             assert nc.id == os.path.splitext(ncfile)[0]
 
             t = nc.variables['time']
@@ -448,5 +448,5 @@ class ConverterTests(unittest.TestCase):
         with nc4.Dataset(output_file) as nc:
             assert nc.original_folder == project
             assert nc.original_filename == ncfile
-            assert nc.MOORING == 991
+            assert nc.MOORING == '991'
             assert nc.id == os.path.splitext(ncfile)[0]
