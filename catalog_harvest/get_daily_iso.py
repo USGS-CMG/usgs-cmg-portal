@@ -31,8 +31,7 @@ THREDDS_SERVERS = {
 '''
 
 THREDDS_SERVERS = {
-    "coawst":   "https://gamone.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.html",
-    "F7VD6XBF": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7VD6XBF/catalog.html"}
+    "coawst":   "https://gamone.whoi.edu/thredds/catalog/coawst_4/use/fmrc/catalog.html"}
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
                               save_dir=SAVE_DIR,
