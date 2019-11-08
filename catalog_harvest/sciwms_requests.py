@@ -4,11 +4,17 @@ Created on Jul 28, 2015
 @author: ayan
 '''
 import json
-from urllib import urlencode
-from urlparse import urljoin
+try:
+    from urllib import urlencode
+    from urlparse import urljoin
+except ImportError:
+    from urllib.parse import urlencode, urljoin
 
-from pysgrid import from_ncfile
-from pysgrid.custom_exceptions import SGridNonCompliantError
+try:
+    from pysgrid import from_ncfile
+except ImportError:
+    from pysgrid import read_netcdf as from_ncfile
+# from pysgrid.custom_exceptions import SGridNonCompliantError
 from pyugrid import UGrid
 import requests
 
