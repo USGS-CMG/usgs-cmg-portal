@@ -5,7 +5,10 @@ Created on Jul 30, 2015
 '''
 import os
 import logging
-import urllib
+try:
+    from urllib import urlretrieve
+except ImportError:
+    from urllib.request import urlretrieve
 
 from thredds_crawler.crawl import Crawl
 
@@ -30,7 +33,11 @@ def get_metadata(thredds_servers, save_dir,
             filename = '{0}{1}'.format(iso[0].replace('/', '_'), '.iso.xml')
             filepath = os.path.join(filefolder, filename)
             try:
+<<<<<<< HEAD
                 urllib.request.urlretrieve(iso[1], filepath)
+=======
+                urlretrieve(iso[1], filepath)
+>>>>>>> upstream/master
             except BaseException:
                 logger.exception("Error!")
             else:
