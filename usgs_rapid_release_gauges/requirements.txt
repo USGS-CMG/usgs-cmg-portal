@@ -1,10 +1,10 @@
 requests
 numpy
-netCDF4<=1.2.8
+netCDF4
 pyproj
 beautifulsoup4
 pandas
-pyaxiom>=1.2.0
+pyaxiom
 lxml
 python-dateutil
 coloredlogs
