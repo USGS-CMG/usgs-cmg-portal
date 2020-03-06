@@ -3,7 +3,7 @@ Created on Jul 28, 2015
 
 @author: ayan
 '''
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from lxml import etree
 
@@ -17,7 +17,7 @@ def construct_dataset_name_from_url(dataset_url, slice_int=-3):
 
 
 class IsoMetadata(object):
-    
+
     namespaces = {'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
                   'gco': 'http://www.isotc211.org/2005/gco',
                   'gmd': 'http://www.isotc211.org/2005/gmd',
@@ -31,11 +31,11 @@ class IsoMetadata(object):
                   'xlink': 'http://www.w3.org/1999/xlink',
                   'xs': 'http://www.w3.org/2001/XMLSchema'
                   }
-    
+
     def __init__(self, metadata_path):
         self.md = metadata_path
         self.tree = etree.parse(self.md)
-        
+
     def is_cmg_portal_project(self):
         xpath_param = (".//gmd:keyword/gco:CharacterString")
         elements = self.tree.xpath(xpath_param, namespaces=self.namespaces)
@@ -49,7 +49,7 @@ class IsoMetadata(object):
         else:
             cmg_portal = False
         return cmg_portal
-        
+
     def get_dataset_url(self):
         xpath_param = (".//srv:connectPoint"
                        "/gmd:CI_OnlineResource[gmd:name/gco:CharacterString='OPeNDAP']"
@@ -60,7 +60,7 @@ class IsoMetadata(object):
                                  )
         dataset_url = elements[0].text
         return dataset_url
-    
+
     def get_abstract(self):
         element = self.tree.find('.//gmd:abstract/gco:CharacterString', namespaces=self.namespaces)
         try:
@@ -68,7 +68,7 @@ class IsoMetadata(object):
         except:
             abstract_content = None
         return abstract_content
-    
+
     def replace_nciso_wms_getcaps_endpoints(self, new_endpoint):
         xpath_param = (".//srv:connectPoint"
                        "/gmd:CI_OnlineResource[gmd:name/gco:CharacterString='OGC-WMS']"
