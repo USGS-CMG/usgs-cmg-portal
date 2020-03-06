@@ -21,7 +21,7 @@ logger.setLevel(logging.DEBUG)
 SAVE_DIR="/opt/docker/pycsw/store/iso_records"
 
 THREDDS_SERVERS = {
-   # "usgs-ts":   "https://geoport.usgs.esipfed.org/thredds/catalog/usgs/data2/emontgomery/stellwagen/CF-1.6/catalog.html",
+   "usgs-ts": "https://geoport.usgs.esipfed.org/thredds/catalog/silt/usgs/Projects/stellwagen/CF-1.6/catalog.html",
    "F7VD6XBF": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7VD6XBF/catalog.html"
 }
 
