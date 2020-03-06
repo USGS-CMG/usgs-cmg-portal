@@ -3,7 +3,10 @@ Created on Jul 28, 2015
 
 @author: ayan
 '''
-from urlparse import urlparse
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib import parse as urlparse
 
 from lxml import etree
 
