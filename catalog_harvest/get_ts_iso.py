@@ -23,7 +23,10 @@ SAVE_DIR="/opt/docker/pycsw/store/iso_records"
 THREDDS_SERVERS = {
    "usgs-ts": "https://geoport.usgs.esipfed.org/thredds/catalog/silt/usgs/Projects/stellwagen/CF-1.6/catalog.html",
    "F7VD6XBF": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7VD6XBF/catalog.html",
-   "F7RN362H": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7RN362H/catalog.html"
+   "F7RN362H": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7RN362H/catalog.html",
+   "F73R0R07": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F73R0R07/catalog.html",
+   "F7CR5RW8": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7CR5RW8/catalog.html",
+   "F7NG4NS1": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7NG4NS1/catalog.html"
 }
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
