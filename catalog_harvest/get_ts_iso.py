@@ -22,11 +22,13 @@ SAVE_DIR="/opt/docker/pycsw/store/iso_records"
 
 THREDDS_SERVERS = {
    "usgs-ts": "https://geoport.usgs.esipfed.org/thredds/catalog/silt/usgs/Projects/stellwagen/CF-1.6/catalog.html",
-   "F7VD6XBF": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7VD6XBF/catalog.html",
-   "F7RN362H": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7RN362H/catalog.html",
-   "F73R0R07": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F73R0R07/catalog.html",
-   "F7CR5RW8": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7CR5RW8/catalog.html",
-   "F7NG4NS1": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7NG4NS1/catalog.html"
+   "F7VD6XBF": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7VD6XBF/catalog.html", # Ocean Currents and Pressure Time Series at the Upper Florida Keys: Crocker Reef, FL
+   "F7RN362H": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7RN362H/catalog.html", # Data from coastal circulation and water-column properties in the National Park of American Samoa, February-July 2015
+   "F73R0R07": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F73R0R07/catalog.html", # Wind-wave and suspended-sediment data from Liberty Island and Little Holland Tract, Sacramento-San Joaquin Delta, California (ver. 2.0, September 2019)
+   "F7CR5RW8": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7CR5RW8/catalog.html", # Oceanographic measurements obtained offshore of the Elwha River delta in coordination with the Elwha River Restoration Project, Washington, USA, 2010-2014
+   "F7NG4NS1": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7NG4NS1/catalog.html", # Oceanographic measurements and hydrodynamic modeling of the mouth of the Columbia River, Oregon and Washington, 2013
+   "F71C1W36": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F71C1W36/catalog.html", # Bathymetry, acoustic-backscatter, and time-series datasets collected between 2014 and 2016 of a field of crescent-shaped rippled scour depressions in northern Monterey Bay, California
+   "P9IXOHID": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-P9IXOHID/catalog.html", # Time series data of oceanographic conditions from La Parguera, Puerto Rico, 2017-2018 Coral Reef Circulation and Sediment Dynamics Experiment
 }
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
