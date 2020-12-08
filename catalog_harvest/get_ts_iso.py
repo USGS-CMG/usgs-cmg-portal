@@ -30,6 +30,7 @@ THREDDS_SERVERS = {
    "F71C1W36": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F71C1W36/catalog.html", # Bathymetry, acoustic-backscatter, and time-series datasets collected between 2014 and 2016 of a field of crescent-shaped rippled scour depressions in northern Monterey Bay, California
    "P9IXOHID": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-P9IXOHID/catalog.html", # Time series data of oceanographic conditions from La Parguera, Puerto Rico, 2017-2018 Coral Reef Circulation and Sediment Dynamics Experiment
    "P91T185R": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-P91T185R/catalog.html", # Time Series of Autonomous Carbonate System Parameter Measurements in Eastern Gulf of Mexico near Tampa Bay, Florida, USA
+   "F7FT8J7Q": "https://geoport.usgs.esipfed.org/thredds/catalog/sand/usgs/users/dnowacki/doi-F7FT8J7Q/catalog.html", # Time-series oceanographic data from the Monterey Canyon, CA October 2015 - March 2017
 }
 
 metadata_files = get_metadata(thredds_servers=THREDDS_SERVERS,
