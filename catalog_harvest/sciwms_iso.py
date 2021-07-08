@@ -42,7 +42,7 @@ def get_metadata(thredds_servers, save_dir,
 
 
 def add_dataset_to_sciwms(rest_url, user,
-                          password, metadata_files, 
+                          password, metadata_files,
                           logger_name=None):
     logger = logging.getLogger(logger_name)
     swa = SciWMSApi(rest_url, user, password)
